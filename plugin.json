@@ -1,13 +1,43 @@
 {
-  "name": "plugin-name",
-  "display_name": "My Super Amazing Plugin",
-  "short_name": "My Plugin",
+  "name": "ghostwriter-for-obsidian",
+  "display_name": "Ghostwriter for Obsidian",
+  "short_name": "Ghostwriter",
   "version": "0.1.0",
-  "description": "Does plugin stuff.",
+  "description": "Filesystem-native AI collaboration and co-authorship for Obsidian vaults",
   "author": "Draxall",
+  "license": "MIT",
+  "icon": "🖋️",
+  "default_enabled": true,
+  "settingsUI": "auto",
   "capabilities": {
     "tools": [
-      "tools/my-plugin.py"
+      "tools/ghostwriter_tools.py"
+    ],
+    "settings": [
+      {
+        "key": "vault_path",
+        "type": "string",
+        "label": "Obsidian Vault Path",
+        "default": "",
+        "help": "Path to the Obsidian vault Ghostwriter should access."
+      }
+    ],
+    "routes": [
+      {
+        "method": "GET",
+        "path": "status",
+        "handler": "routes/status.py:handle"
+      },
+      {
+        "method": "POST",
+        "path": "list",
+        "handler": "routes/list.py:handle"
+      },
+      {
+        "method": "POST",
+        "path": "read",
+        "handler": "routes/read.py:handle"
+      }
     ]
   }
 }
