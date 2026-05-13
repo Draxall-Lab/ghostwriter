@@ -2,7 +2,7 @@
   "name": "ghostwriter-for-obsidian",
   "display_name": "Ghostwriter for Obsidian",
   "short_name": "Ghostwriter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Filesystem-native AI collaboration and co-authorship for Obsidian vaults",
   "author": "Draxall",
   "license": "MIT",

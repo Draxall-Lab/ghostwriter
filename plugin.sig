@@ -1,6 +1,6 @@
 {
   "plugin": "ghostwriter-for-obsidian",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "files": {
     ".vscode/settings.json": "sha256:fb68765dabb197cac60376c803ac61894961b835ca8760705eb89a09e2177551",
     "Changelog.md": "sha256:bafd6f4e01d6b07c9b6e445ddac1c4841721200d23536a9dd57b511cf1042a08",
@@ -11,7 +11,7 @@
     "gw_core/write_policy.py": "sha256:3396be3f7027d7a8433f316f4f06e2da59a23405d5115151d5e65befbdc9624e",
     "gw_core/writer.py": "sha256:3c90de4de781202854db33894754c0eaffee2a68bb8cdcce594d8e5c2ceaf4ad",
     "Install Guide.md": "sha256:b416be85be51ddae653f7dc79c2158fcb3f3029be307c42285ba0d26df97c56e",
-    "plugin.json": "sha256:ad96503cba202c42e9a519af82c0a2e438cd841a62c32534030e9c6a0b45a2c4",
+    "plugin.json": "sha256:b8a7ed61027641ba5feafd273fc98438bb6f20c1b3003ce7458555fa02410855",
     "README.md": "sha256:64130a0d606e9f93ec81d129f530d3b33779dd1569615cf6b50b403604a3615b",
     "routes/list.py": "sha256:9dd142a632fcd84170982b58cfdeb0b16ea00f2b7d7232320cfcc4ea40968894",
     "routes/read.py": "sha256:e443f964f87ea9c7bbe6830769c8c13411872dce7be41f7ed6f4c51f862b0d58",
@@ -19,5 +19,5 @@
     "routes/write.py": "sha256:0b46d239028c691673b8c685cc8575c0fe9374c4bd2a5f7e6142c4b250ffd438",
     "tools/ghostwriter_tools.py": "sha256:70726924ed7f91badec86f406487ac2a6702ee8380704e76a9211a94a86619fd"
   },
-  "signature": "253rPgP34l9Hegc1du9YwmQlt/bFr1akJFXuj+v2DjLAHx3qy5iqsF1EAWlVHMvM2/IU+9xlsIbxVjYgDNmeDg=="
+  "signature": "wgi52MUkSsp246tvuhT00IxRuSJjFKAlYERWqdVpQzZAdiBLo6ncSQxD3zMWVNG3XDqkTqaEa93/5DCaTHPWCQ=="
 }
