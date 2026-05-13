@@ -37,6 +37,16 @@
         "method": "POST",
         "path": "read",
         "handler": "routes/read.py:handle"
+      },
+      {
+        "method": "POST",
+        "path": "folder/create",
+        "handler": "routes/write.py:create_folder"
+      },
+      {
+        "method": "POST",
+        "path": "note/create",
+        "handler": "routes/write.py:create_note"
       }
     ]
   }

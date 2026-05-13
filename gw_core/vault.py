@@ -9,9 +9,21 @@ META_DIR = "_meta"
 META_OPS_FILE = "meta-ops.md"
 GUIDE_FOR_AI_FILE = "guide-for-ai.md"
 
+def get_vault_path(settings=None) -> Path:
+    raw_path = ""
 
-def get_vault_path(settings):
-    return normalise_path((settings or {}).get("vault_path", ""))
+    if isinstance(settings, dict):
+        raw_path = settings.get("vault_path", "")
+
+    vault_path = normalise_path(raw_path)
+
+    if not vault_path:
+        raise ValueError("Vault path is not configured")
+
+    return Path(vault_path)
+
+def _vault_root(settings=None) -> Path:
+    return Path(get_vault_path(settings or {}))
 
 
 def vault_status(settings):
