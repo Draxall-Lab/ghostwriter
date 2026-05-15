@@ -146,6 +146,18 @@ def ghostwriter_create_folder(
 
     return target
 
+def clean_path_input(value: str) -> str:
+    value = value.strip()
+
+    # Remove accidental markdown emphasis wrapping
+    if value.startswith("_") and value.endswith("_"):
+        value = value[1:-1]
+
+    if value.startswith("*") and value.endswith("*"):
+        value = value[1:-1]
+
+    return value.strip()
+
 def create_blank_note_from_template(
     vault_root: Path,
     policy: WritePolicy,
@@ -186,6 +198,8 @@ def append_to_note(
     if not content or not content.strip():
         raise ValueError("Append content is required")
 
+    note_path = clean_path_input(note_path)
+    
     target = resolve_owned_note_path(vault_root, policy, note_path)
 
     meta_ops_path = vault_root / "_meta" / "meta-ops.md"
@@ -229,6 +243,8 @@ def comment_on_note(
 
     if not anchor or not anchor.strip():
         raise ValueError("Anchor is required")
+    
+    note_path = clean_path_input(note_path)
 
     target = resolve_owned_note_path(vault_root, policy, note_path)
 
@@ -276,6 +292,9 @@ def ghostwriter_move_file(
     Both source and destination must remain inside:
         _collab/{Persona Name}/
     """
+
+    source_path = clean_path_input(source_path)
+    destination_path = clean_path_input(destination_path)
 
     if not source_path or not source_path.strip():
         raise ValueError("source_path is required")
@@ -367,6 +386,7 @@ def resolve_new_note_path(
     workspace_root = resolve_persona_working_folder(vault_root, policy).resolve()
     vault_root = vault_root.resolve()
 
+    note_path = clean_path_input(note_path)
     requested = note_path.strip().replace("\\", "/")
 
     reject_workspace_prefixed_path(requested)
