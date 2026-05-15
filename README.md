@@ -39,7 +39,7 @@ The guiding principle is:
 
 ---
 
-# Current Capabilities (v0.2)
+# Current Capabilities (v0.3)
 
 ## Read & Retrieval
 
@@ -58,13 +58,22 @@ AI collaborators can navigate Obsidian wikilinks and semantically resolve releva
 
 ## Controlled Collaborative Writes
 
-Ghostwriter v0.2 introduces limited collaborative write capabilities.
+Ghostwriter v0.3 introduces contextual collaborative write capabilities.
 
 Current supported operations:
 
 - create AI working folders
 - create blank notes from templates
 - append content to existing collaborative notes
+- workspace-scoped folder creation
+- nested collaborative folder creation
+- create blank notes from templates
+- create fully-written notes
+- append contributions to notes
+- contextual block-level comments
+- workspace-safe file moves
+
+Comment operations are block-level and additive. Ghostwriter does not currently perform inline sentence rewriting or destructive edits.
 
 All writes are:
 
@@ -117,25 +126,36 @@ _collab/Sapphire/
 
 Each AI collaborator maintains its own working folder.
 
-During v0.2:
+During v0.3:
 
-- collaborators may create notes inside their own workspace
-- collaborators may append to notes inside their own workspace
+- collaborators may create folders inside their own workspace
+- collaborators may create fully-authored notes
+- collaborators may append to notes
+- collaborators may add contextual comments to notes
+- collaborators may move files inside their own workspace
 - arbitrary vault editing is not permitted
-- deleting or moving content is not permitted
+- inline destructive editing is not permitted
+- deleting content is not permitted
 
 ---
 
-# Append Model
+# Contribution Model
 
-Ghostwriter currently uses an append-only collaboration model.
+Ghostwriter currently uses an additive collaboration model.
 
-Append operations:
+Supported contribution behaviours include:
 
-- add content only to the end of notes
-- do not rewrite existing content
-- preserve authorship visibility
-- preserve reviewability
+- end-of-note append contributions
+- contextual block-level comments
+- explicit provenance attribution
+- non-destructive collaborative annotations
+
+Ghostwriter does not currently perform:
+
+- inline sentence rewriting
+- silent content mutation
+- destructive editing
+- autonomous restructuring
 
 Formatting conventions are governed through meta-ops rather than hardcoded into the plugin.
 
@@ -152,6 +172,7 @@ gw_core/
   meta.py
   write_policy.py
   writer.py
+  commenter.py
 
 tools/
   ghostwriter_tools.py
@@ -196,17 +217,17 @@ Typical interaction flow:
 ```text
 Load meta-context
 → establish collaborator identity
-→ resolve working folder
-→ create or read notes
-→ append contributions
-→ preserve authored continuity
+→ resolve workspace boundaries
+→ retrieve relevant notes semantically
+→ create, append, or comment contextually
+→ preserve authored continuity and provenance
 ```
 
 ---
 
 # Current Status
 
-## v0.2 Stage 1
+## v0.3
 Complete
 
 Validated capabilities:
@@ -218,6 +239,18 @@ Validated capabilities:
 - provenance-aware contributions
 - operational governance refresh
 - semantic workspace navigation
+- workspace-scoped folder creation
+- nested folder creation
+- template-based note creation
+- full note writing
+- append contributions
+- contextual block-level comments
+- workspace-safe file moves
+- provenance-aware contributions
+- operational governance refresh
+- semantic workspace navigation
+- additive collaborative annotation
+- multi-persona workspace isolation
 
 ---
 
@@ -225,10 +258,11 @@ Validated capabilities:
 
 Planned future exploration areas include:
 
-- controlled sub-folder creation
-- selective collaborative editing
-- collaboration markers
-- append targeting improvements
+- tracked edit suggestions
+- inline edit review workflows
+- semantic anchor refinement
+- contribution threading
+- dry-run collaborative previews
 - retrieval optimisation for large notes
 - context budgeting
 - shared collaborative spaces

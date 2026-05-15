@@ -8,12 +8,16 @@ if str(PLUGIN_ROOT) not in sys.path:
 
 from gw_core.vault import get_vault_path, list_markdown_notes, read_note, vault_status
 from gw_core.meta import load_meta_context
-from gw_core.write_policy import resolve_write_policy
 from gw_core.writer import (
     create_ai_working_folder,
     create_blank_note_from_template,
     append_to_note,
+    ghostwriter_create_folder,
+    ghostwriter_move_file,
+    write_note,
+    comment_on_note,
 )
+from gw_core.write_policy import resolve_write_policy, load_meta_ops
 
 
 ENABLED = True
@@ -27,6 +31,10 @@ AVAILABLE_FUNCTIONS = [
     "ghostwriter_create_working_folder",
     "ghostwriter_create_blank_note",
     "ghostwriter_append_to_note",
+    "ghostwriter_create_folder",
+    "ghostwriter_move_file",
+    "ghostwriter_write_note",
+    "ghostwriter_comment_on_note",
 ]
 
 TOOLS = [
@@ -115,7 +123,7 @@ TOOLS = [
         "is_local": True,
         "function": {
             "name": "ghostwriter_create_blank_note",
-            "description": "Create a blank Markdown note inside the current AI collaborator's working folder, using Templates/General Note.md frontmatter and populated provenance fields.",
+            "description": "Create an empty starter note for later incremental collaboration inside the current AI collaborator's working folder, using Templates/General Note.md frontmatter and populated provenance fields.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -157,7 +165,126 @@ TOOLS = [
                 "required": ["persona_name", "note_path", "content"]
             }
         }
+    },
+    {
+    "type": "function",
+    "function": {
+        "name": "ghostwriter_create_folder",
+        "description": "Create a folder inside your active AI workspace only.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "The active persona name. Used to resolve _collab/{Persona Name}/."
+                },
+                "folder_path": {
+                    "type": "string",
+                    "description": "Folder path to create, relative to your workspace or explicitly under _collab/{Persona Name}/."
+                }
+            },
+            "required": ["persona_name", "folder_path"]
+        }
     }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "ghostwriter_move_file",
+        "description": "Move a file inside your active AI workspace only.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "The active persona name."
+                },
+                "source_path": {
+                    "type": "string",
+                    "description": "Source file path."
+                },
+                "destination_path": {
+                    "type": "string",
+                    "description": "Destination file path."
+                }
+            },
+            "required": [
+                "persona_name",
+                "source_path",
+                "destination_path"
+            ]
+        }
+    }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "ghostwriter_write_note",
+        "description": "Create and fully write a new Markdown note in a single operation. Preferred for creating complete notes with content. Refuses to overwrite existing notes.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "The active persona name."
+                },
+                "note_path": {
+                    "type": "string",
+                    "description": "Path of the note to create, relative to your workspace or explicitly under _collab/{Persona Name}/."
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Full note content to write."
+                }
+            },
+            "required": [
+                "persona_name",
+                "note_path",
+                "content"
+            ]
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_comment_on_note",
+        "description": "Add a block-level comment before or after a matched paragraph, heading, list item, or marker in a note. Does not edit existing text.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "The active persona name."
+                },
+                "note_path": {
+                    "type": "string",
+                    "description": "Path to the note, relative to your workspace or explicitly under _collab/{Persona Name}/."
+                },
+                "anchor": {
+                    "type": "string",
+                    "description": "Text used to identify the target block."
+                },
+                "comment": {
+                    "type": "string",
+                    "description": "The comment/contribution to insert as a separate block."
+                },
+                "position": {
+                    "type": "string",
+                    "enum": ["after", "before"],
+                    "default": "after"
+                },
+                "block_type": {
+                    "type": "string",
+                    "enum": ["paragraph", "heading", "list_item", "marker", "any"],
+                    "default": "any"
+                }
+            },
+            "required": ["persona_name", "note_path", "anchor", "comment"]
+        }
+    }
+}
 ]
 
 
@@ -180,7 +307,6 @@ def _error(exc):
         "error": type(exc).__name__,
         "message": str(exc),
     }
-
 
 def execute(function_name, arguments, config=None, plugin_settings=None):
     arguments = arguments or {}
@@ -267,6 +393,109 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             )
 
             return _json_result(_ok("appended_to_note", appended_path)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_create_folder":
+        try:
+            persona_name = arguments.get("persona_name", "")
+            folder_path = arguments.get("folder_path", "")
+
+            if not persona_name:
+                raise ValueError("persona_name is required")
+
+            if not folder_path:
+                raise ValueError("folder_path is required")
+
+            vault_root = get_vault_path(settings)
+            policy = resolve_write_policy(vault_root, persona_name)
+
+            created_path = ghostwriter_create_folder(
+                vault_root=vault_root,
+                policy=policy,
+                folder_path=folder_path,
+            )
+
+            return _json_result(_ok("created_or_confirmed_folder", created_path)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_move_file":
+        try:
+            persona_name = arguments.get("persona_name", "")
+            source_path = arguments.get("source_path", "")
+            destination_path = arguments.get("destination_path", "")
+
+            if not persona_name:
+                raise ValueError("persona_name is required")
+
+            vault_root = get_vault_path(settings)
+            policy = resolve_write_policy(vault_root, persona_name)
+
+            result = ghostwriter_move_file(
+                vault_root=vault_root,
+                policy=policy,
+                source_path=source_path,
+                destination_path=destination_path,
+            )
+
+            return _json_result(_ok("moved_file", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_write_note":
+        try:
+            persona_name = arguments.get("persona_name", "")
+            note_path = arguments.get("note_path", "")
+            content = arguments.get("content", "")
+
+            if not persona_name:
+                raise ValueError("persona_name is required")
+
+            vault_root = get_vault_path(settings)
+            policy = resolve_write_policy(vault_root, persona_name)
+
+            note = write_note(
+                vault_root=vault_root,
+                policy=policy,
+                note_path=note_path,
+                content=content,
+            )
+
+            return _json_result(_ok("created_note", note)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_comment_on_note":
+        try:
+            persona_name = arguments.get("persona_name", "")
+            note_path = arguments.get("note_path", "")
+            anchor = arguments.get("anchor", "")
+            comment = arguments.get("comment", "")
+            position = arguments.get("position", "after")
+            block_type = arguments.get("block_type", "any")
+
+            if not persona_name:
+                raise ValueError("persona_name is required")
+
+            vault_root = get_vault_path(settings)
+            policy = resolve_write_policy(vault_root, persona_name)
+
+            result = comment_on_note(
+                vault_root=vault_root,
+                policy=policy,
+                note_path=note_path,
+                anchor=anchor,
+                comment=comment,
+                position=position,
+                block_type=block_type,
+            )
+
+            return _json_result(_ok("comment_added", result)), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False
