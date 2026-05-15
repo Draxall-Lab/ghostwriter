@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
+
 @dataclass
 class WritePolicy:
     allowed_root: str
@@ -16,6 +17,37 @@ def cache_check():
     """
     return None
 
+def clean_path_input(value: str) -> str:
+    value = value.strip()
+
+    # Remove accidental markdown emphasis wrapping
+    if value.startswith("_") and value.endswith("_"):
+        value = value[1:-1]
+
+    if value.startswith("*") and value.endswith("*"):
+        value = value[1:-1]
+
+    return value.strip()
+
+def normalise_workspace_relative_path(path: str, policy: WritePolicy) -> str:
+    value = clean_path_input(path)
+
+    value = value.replace("\\", "/").strip()
+
+    workspace_prefix = f"_collab/{policy.persona_name}/"
+
+    if value.startswith(workspace_prefix):
+        value = value[len(workspace_prefix):]
+
+    if value.startswith("_collab/"):
+        raise ValueError(
+            "Write paths may only target your own workspace."
+        )
+
+    if value.startswith("/") or ".." in value.split("/"):
+        raise ValueError("Invalid workspace-relative path.")
+
+    return value.strip("/")
 
 def normalise_persona_name(persona_name: str) -> str:
     cleaned = persona_name.strip()
@@ -88,7 +120,8 @@ def resolve_owned_note_path(vault_root: Path, policy: WritePolicy, note_path: st
 
     requested = note_path.strip().replace("\\", "/")
 
-    reject_workspace_prefixed_path(requested)
+    requested = normalise_workspace_relative_path(requested, policy)
+    # reject_workspace_prefixed_path(requested)
 
     if requested.startswith("/"):
         raise PermissionError("Absolute paths are not allowed")

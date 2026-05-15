@@ -8,6 +8,7 @@ from .write_policy import (
     resolve_persona_working_folder,
     resolve_owned_note_path,
     reject_workspace_prefixed_path,
+    clean_path_input,
 )
 
 from gw_core.commenter import insert_comment_block
@@ -145,18 +146,6 @@ def ghostwriter_create_folder(
     target.mkdir(parents=True, exist_ok=False)
 
     return target
-
-def clean_path_input(value: str) -> str:
-    value = value.strip()
-
-    # Remove accidental markdown emphasis wrapping
-    if value.startswith("_") and value.endswith("_"):
-        value = value[1:-1]
-
-    if value.startswith("*") and value.endswith("*"):
-        value = value[1:-1]
-
-    return value.strip()
 
 def create_blank_note_from_template(
     vault_root: Path,
