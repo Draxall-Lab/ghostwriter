@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
-
 @dataclass
 class WritePolicy:
     allowed_root: str
@@ -43,6 +42,16 @@ def load_meta_ops(vault_root: Path) -> str:
 
     return meta_ops_path.read_text(encoding="utf-8")
 
+def reject_workspace_prefixed_path(path_value: str) -> None:
+    requested = (path_value or "").strip().replace("\\", "/").lstrip("/")
+
+    lowered = requested.lower()
+
+    if lowered == "_collab" or lowered.startswith("_collab/"):
+        raise ValueError(
+            "Use paths relative to your workspace. "
+            "Do not include _collab/{Persona Name}/ in tool paths."
+        )
 
 def resolve_write_policy(vault_root: Path, persona_name: str) -> WritePolicy:
     cached = cache_check()
@@ -77,22 +86,30 @@ def resolve_owned_note_path(vault_root: Path, policy: WritePolicy, note_path: st
     if not note_path or not note_path.strip():
         raise ValueError("note_path is required")
 
-    if note_path.startswith("/") or note_path.startswith("\\"):
+    requested = note_path.strip().replace("\\", "/")
+
+    reject_workspace_prefixed_path(requested)
+
+    if requested.startswith("/"):
         raise PermissionError("Absolute paths are not allowed")
 
-    if ".." in Path(note_path).parts:
+    if ".." in Path(requested).parts:
         raise PermissionError("Path traversal is not allowed")
 
     working_folder = resolve_persona_working_folder(vault_root, policy).resolve()
-    target = (vault_root / note_path).resolve()
+    vault_root = vault_root.resolve()
 
-    if not str(target).startswith(str(working_folder)):
+    target = (working_folder / requested).resolve()
+
+    try:
+        target.relative_to(working_folder)
+    except ValueError:
         raise PermissionError("Append target must be inside your own working folder")
 
     if target.suffix.lower() != ".md":
         raise ValueError("Append target must be a Markdown note")
 
     if not target.exists():
-        raise FileNotFoundError(f"Note not found: {note_path}")
+        raise FileNotFoundError(f"Note not found: {requested}")
 
     return target

@@ -1,5 +1,62 @@
 # Changelog
 
+## v0.3.0
+
+### Added
+- Workspace-scoped arbitrary folder creation
+- Nested collaborative folder support
+- Workspace-safe file move operations
+- Full note writing support through `ghostwriter_write_note`
+- Block-level contextual commenting system
+- `ghostwriter_comment_on_note` tool
+- Structural comment insertion engine (`commenter.py`)
+- Contextual contribution placement using semantic anchor matching
+- Before/after block positioning support
+- Comment contribution styling with visual differentiation
+- Workspace-relative path handling model
+- Controlled collaborative annotation workflow
+- Support for contextual layered note collaboration
+
+### Changed
+- Transitioned Ghostwriter from append-only collaboration into additive contextual collaboration
+- Refined collaborative contribution formatting for improved readability
+- Removed hard visual separators (`---`) from contribution rendering
+- Introduced italicised comment-body rendering for clearer annotation distinction
+- Unified workspace-relative path resolution across write operations
+- Improved separation between routing, orchestration, and text manipulation layers
+- Refined contribution presentation to better support continuous reading flow
+
+### Improved Architecture
+- Introduced dedicated block insertion helper layer (`commenter.py`)
+- Further separated structural text operations from filesystem orchestration
+- Standardised workspace-root path semantics across tools
+- Reduced write-layer coupling between formatting and placement logic
+- Improved internal consistency between append and comment workflows
+
+### Validated
+- Block-level contextual comment insertion
+- Semantic anchor resolution through natural language prompts
+- Multi-comment stacking behaviour
+- Relative comment placement ("before" / "after")
+- Contextual annotation readability
+- Workspace-safe note movement
+- Nested folder creation
+- Additive collaborative annotation workflow
+- Semantic navigation of authored contribution chains
+- Natural-language collaborative reference behaviour
+- Cross-platform collaborative vault persistence after remount/reload recovery
+
+### Safety
+- Comment operations remain additive and non-destructive
+- No inline sentence rewriting
+- No silent mutation of authored prose
+- No unrestricted vault editing
+- Workspace boundaries preserved
+- Human reviewability maintained across all collaborative operations
+- Structural collaboration remains explicitly attributable and inspectable
+
+---
+
 ## v0.2.0
 
 ### Added
