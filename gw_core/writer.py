@@ -3,15 +3,20 @@ from pathlib import Path
 import re
 import shutil
 
+# Debug
+from venv import logger
+
 from .write_policy import (
     WritePolicy,
     resolve_persona_working_folder,
-    resolve_owned_note_path,
     reject_workspace_prefixed_path,
     clean_path_input,
 )
 
-from gw_core.commenter import insert_comment_block
+from .templates import (
+    load_template_frontmatter_for_new_note,
+    strip_frontmatter_block,
+)
 
 def sanitise_note_title(title: str) -> str:
     cleaned = title.strip()
@@ -163,18 +168,19 @@ def create_blank_note_from_template(
     if note_path.exists():
         raise FileExistsError(f"Note already exists: {note_path.name}")
 
-    template_text = load_general_note_template(vault_root)
-    frontmatter = extract_frontmatter(template_text)
-    updated_frontmatter = update_frontmatter(frontmatter, policy.persona_name)
+    frontmatter_block = load_template_frontmatter_for_new_note(
+    vault_root=vault_root,
+    persona_name=policy.persona_name,
+)
 
-    note_text = f"---\n{updated_frontmatter}\n---\n"
+    if frontmatter_block is None:
+        note_text = ""
+    else:
+        note_text = f"{frontmatter_block}\n"
 
     note_path.write_text(note_text, encoding="utf-8")
 
     return note_path
-
-from datetime import datetime
-
 
 def append_to_note(
     vault_root: Path,
@@ -421,10 +427,21 @@ def write_note(
 
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    final_content = content.strip()
+    frontmatter_block = load_template_frontmatter_for_new_note(
+        vault_root=vault_root,
+        persona_name=policy.persona_name,
+    )
 
-    if not final_content.endswith("\n"):
-        final_content += "\n"
+    if frontmatter_block is None:
+        final_content = strip_frontmatter_block(content).strip()
+
+        if not final_content.endswith("\n"):
+            final_content += "\n"
+    else:
+        clean_body = strip_frontmatter_block(content)
+        final_content = f"{frontmatter_block}\n{clean_body.strip()}\n"
+
+    logger.info("[GW WRITE] FINAL CONTENT: %r", final_content)
 
     target.write_text(final_content, encoding="utf-8")
 

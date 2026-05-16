@@ -1,5 +1,154 @@
 # Changelog
 
+## v0.4.0 - Governance & Frontmatter Foundation
+
+### Release Type
+Architecture / Governance / Metadata Stabilisation
+
+---
+
+## Highlights
+
+Ghostwriter v0.4.0 introduces deterministic frontmatter governance and standardized operational parsing.
+
+This release transitions Ghostwriter from a lightweight collaborative write layer into a more structured, governance-driven collaborative environment.
+
+Vault-defined operational agreements now directly govern template selection, note structure, and metadata continuity.
+
+---
+
+## New Features
+
+### Standardized Meta-Ops Section Parsing
+- Added normalized `--SECTION--` governance structure
+- Added deterministic section parsing for `meta-ops.md`
+- Added section-aware operational directive loading
+- Added stable machine-readable governance naming conventions
+- Added support for future governance extensibility
+
+### Template-Governed Note Creation
+- Removed hardcoded template path handling
+- Added `Template Path` governance directive
+- Added vault-governed template selection
+- Added exact-path template resolution
+- Added support for template switching without code modification
+
+### Deterministic Frontmatter Handling
+- Added canonical frontmatter injection for new notes
+- Added controlled metadata patching during note creation
+- Added AI frontmatter override prevention
+- Added template-derived metadata preservation
+- Added canonical runtime field updates:
+  - `created`
+  - `last updated`
+  - `created by`
+  - `author`
+  - `last updated by`
+
+### Optional Template Disable Mode
+- Added support for:
+  - blank template directive
+  - `None` template directive
+- Allows raw note creation without template injection
+- Maintains deterministic behaviour through governance rather than hardcoded fallback logic
+
+---
+
+## Governance Improvements
+
+### Meta-Ops Structure
+- Standardized governance block format
+- Improved human readability
+- Improved parser stability
+- Improved future tooling compatibility
+- Improved environmental governance clarity
+
+### Operational Philosophy
+Ghostwriter governance now more clearly separates:
+- operational rules
+- environmental guidance
+- human-readable collaboration agreements
+- deterministic machine interpretation
+
+---
+
+## Internal Changes
+
+### New Template Layer
+Added:
+
+```text
+gw_core/templates.py
+```
+
+Responsibilities include:
+- template resolution
+- frontmatter extraction
+- canonical metadata patching
+- frontmatter rendering
+- template disable handling
+
+### Refactoring
+- Decoupled note creation from hardcoded template assumptions
+- Centralized template/frontmatter logic
+- Improved write pipeline separation of concerns
+- Improved governance-driven behaviour handling
+
+---
+
+## Behavioural Improvements
+
+### Note Creation
+New notes now:
+- inherit governed template structure
+- preserve vault-defined metadata schemas
+- maintain consistent frontmatter formatting
+- resist AI-generated metadata drift
+
+### Collaborative Stability
+Improved:
+- authored continuity
+- metadata consistency
+- vault structural reliability
+- long-term governance maintainability
+
+---
+
+## Validated Behaviour
+
+Tested successfully with:
+- GW-base-note templates
+- extended Coding Project templates
+- nested metadata structures
+- template switching
+- blank template mode
+- cross-platform operation on Windows and Halo Linux
+
+Validated against:
+- AI-generated metadata injection attempts
+- workspace boundary enforcement
+- governance reload workflows
+- live collaborative note creation
+
+---
+
+## Design Direction
+
+v0.4 establishes the foundation for:
+- future metadata continuity systems
+- richer governance tooling
+- shared collaborative environments
+- deterministic collaborative infrastructure
+
+while continuing to prioritise:
+- transparency
+- filesystem-native behaviour
+- human oversight
+- operational restraint
+- reviewable collaboration
+
+---
+
 ## v0.3.0
 
 ### Added
