@@ -39,7 +39,30 @@ The guiding principle is:
 
 ---
 
-# Current Capabilities (v0.3)
+# Current Capabilities (v0.4)
+
+# Deterministic Frontmatter Governance
+
+Ghostwriter v0.4 introduces template-governed note creation.
+
+New notes are created using vault-defined templates referenced through:
+
+_meta/meta-ops.md
+
+Template selection is governed through standardized operational sections rather than hardcoded plugin configuration.
+
+Ghostwriter now supports:
+
+- exact template path resolution
+- canonical metadata patching
+- deterministic frontmatter handling
+- template switching through governance
+- optional template disable mode
+- AI frontmatter override prevention
+
+This ensures note structure remains consistent and human-governed while still allowing flexible vault-native workflows.
+
+---
 
 ## Read & Retrieval
 
@@ -85,6 +108,14 @@ All writes are:
 ---
 
 # Operational Governance
+
+Ghostwriter v0.4 standardizes governance parsing using structured `--SECTION--` blocks inside `meta-ops.md`.
+
+This allows:
+- deterministic operational parsing
+- future tooling compatibility
+- vault-native governance evolution
+- human-readable operational agreements
 
 Ghostwriter uses vault-native operational documents stored inside:
 
@@ -173,6 +204,7 @@ gw_core/
   write_policy.py
   writer.py
   commenter.py
+  templates.py
 
 tools/
   ghostwriter_tools.py
@@ -227,8 +259,18 @@ Load meta-context
 
 # Current Status
 
-## v0.3
-Complete
+## v0.4
+In Progress
+
+Validated v0.4 capabilities:
+
+- standardized governance parsing
+- template-path decoupling
+- deterministic frontmatter injection
+- canonical metadata enforcement
+- template-governed note creation
+- optional template disable mode
+- AI metadata override prevention
 
 Validated capabilities:
 
