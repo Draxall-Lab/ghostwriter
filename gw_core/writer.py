@@ -1,10 +1,6 @@
-from datetime import date, datetime 
 from pathlib import Path
 import re
 import shutil
-
-# Debug
-from venv import logger
 
 from .write_policy import (
     WritePolicy,
@@ -17,81 +13,11 @@ from .templates import (
     load_template_frontmatter_for_new_note,
     strip_frontmatter_block,
 )
-
-def sanitise_note_title(title: str) -> str:
-    cleaned = title.strip()
-
-    if not cleaned:
-        raise ValueError("Note title is required")
-
-    if any(part in cleaned for part in ["..", "/", "\\"]):
-        raise ValueError("Note title must not contain path separators")
-
-    cleaned = re.sub(r'[<>:"|?*]', "", cleaned)
-
-    if not cleaned:
-        raise ValueError("Note title is invalid after sanitising")
-
-    return cleaned
-
-
-def extract_frontmatter(template_text: str) -> str:
-    if not template_text.startswith("---"):
-        raise ValueError("Template does not contain YAML frontmatter")
-
-    parts = template_text.split("---", 2)
-
-    if len(parts) < 3:
-        raise ValueError("Template frontmatter is not properly closed")
-
-    return parts[1].strip()
-
-
-def update_frontmatter(frontmatter: str, persona_name: str) -> str:
-    today = date.today().isoformat()
-    lines = frontmatter.splitlines()
-    updated_lines = []
-
-    replacements = {
-        "Created": today,
-        "Last Updated": today,
-        "Created By": "Ghostwriter",
-        "author": persona_name,
-    }
-
-    seen = set()
-
-    for line in lines:
-        stripped = line.strip()
-
-        if ":" not in stripped or stripped.startswith("#"):
-            updated_lines.append(line)
-            continue
-
-        key = stripped.split(":", 1)[0].strip()
-
-        if key in replacements:
-            indent = line[: len(line) - len(line.lstrip())]
-            updated_lines.append(f"{indent}{key}: {replacements[key]}")
-            seen.add(key)
-        else:
-            updated_lines.append(line)
-
-    for key, value in replacements.items():
-        if key not in seen:
-            updated_lines.append(f"{key}: {value}")
-
-    return "\n".join(updated_lines).strip()
-
-
-def load_general_note_template(vault_root: Path) -> str:
-    template_path = vault_root / "Templates" / "General Note.md"
-
-    if not template_path.exists():
-        raise FileNotFoundError("Templates/General Note.md not found")
-
-    return template_path.read_text(encoding="utf-8")
-
+from .governance import (
+    sanitise_note_title,
+    preprocess_note_update,
+    update_last_updated_field,
+)
 
 def create_ai_working_folder(vault_root: Path, policy: WritePolicy) -> Path:
     working_folder = resolve_persona_working_folder(vault_root, policy)
@@ -169,8 +95,8 @@ def create_blank_note_from_template(
         raise FileExistsError(f"Note already exists: {note_path.name}")
 
     frontmatter_block = load_template_frontmatter_for_new_note(
-    vault_root=vault_root,
-    persona_name=policy.persona_name,
+        vault_root=vault_root,
+        persona_name=policy.persona_name,
 )
 
     if frontmatter_block is None:
@@ -179,7 +105,6 @@ def create_blank_note_from_template(
         note_text = f"{frontmatter_block}\n"
 
     note_path.write_text(note_text, encoding="utf-8")
-
     return note_path
 
 def append_to_note(
@@ -189,20 +114,16 @@ def append_to_note(
     content: str,
 ) -> Path:
     from .write_policy import resolve_owned_note_path
+    from .meta import read_meta_ops
 
     if not content or not content.strip():
         raise ValueError("Append content is required")
 
     note_path = clean_path_input(note_path)
-    
+
     target = resolve_owned_note_path(vault_root, policy, note_path)
 
-    meta_ops_path = vault_root / "_meta" / "meta-ops.md"
-
-    meta_ops_text = ""
-
-    if meta_ops_path.exists():
-        meta_ops_text = meta_ops_path.read_text(encoding="utf-8")
+    meta_ops = read_meta_ops(vault_root)
 
     existing_text = ""
 
@@ -212,7 +133,7 @@ def append_to_note(
     updated_text = preprocess_note_update(
         existing_text=existing_text,
         incoming_content=content,
-        meta_ops_text=meta_ops_text,
+        meta_ops=meta_ops,
         persona_name=policy.persona_name,
         contribution_type="Contribution",
     )
@@ -232,6 +153,7 @@ def comment_on_note(
 ) -> Path:
     from .write_policy import resolve_owned_note_path
     from .commenter import insert_comment_block
+    from .meta import read_meta_ops
 
     if not comment or not comment.strip():
         raise ValueError("Comment content is required")
@@ -246,19 +168,19 @@ def comment_on_note(
     if not target.exists():
         raise FileNotFoundError(f"Note not found: {note_path}")
 
-    meta_ops_path = vault_root / "_meta" / "meta-ops.md"
-
-    meta_ops_text = ""
-
-    if meta_ops_path.exists():
-        meta_ops_text = meta_ops_path.read_text(encoding="utf-8")
+    meta_ops = read_meta_ops(vault_root)
 
     existing_text = target.read_text(encoding="utf-8")
+
+    existing_text = update_last_updated_field(
+        existing_text,
+        policy.persona_name,
+    )
 
     comment_text = preprocess_note_update(
         existing_text="",
         incoming_content=comment,
-        meta_ops_text=meta_ops_text,
+        meta_ops=meta_ops,
         persona_name=policy.persona_name,
         contribution_type="Comment",
     ).strip()
@@ -441,102 +363,7 @@ def write_note(
         clean_body = strip_frontmatter_block(content)
         final_content = f"{frontmatter_block}\n{clean_body.strip()}\n"
 
-    logger.info("[GW WRITE] FINAL CONTENT: %r", final_content)
-
     target.write_text(final_content, encoding="utf-8")
 
     return target
 
-def current_datetime_string() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
-
-def extract_append_contribution_style(meta_ops_text: str) -> str:
-    """
-    Extract the body content under:
-
-    ## Append Contribution Style
-
-    Stops at the next markdown heading of equal or higher level.
-    """
-
-    if not meta_ops_text:
-        return ""
-
-    pattern = re.compile(
-        r"^##\s+Append Contribution Style\s*$([\s\S]*?)(?=^##\s+|\Z)",
-        re.MULTILINE,
-    )
-
-    match = pattern.search(meta_ops_text)
-
-    if not match:
-        return ""
-
-    style = match.group(1).strip()
-
-    return style
-
-def preprocess_contribution(
-    content: str,
-    meta_ops_text: str,
-    persona_name: str,
-    contribution_type: str = "Contribution",
-) -> str:
-    style = extract_append_contribution_style(meta_ops_text)
-
-    if not style or style.strip().lower() == "none":
-        return content
-
-    rendered_header = (
-        style
-        .replace("{persona_name}", persona_name)
-        .replace("{current_datetime}", current_datetime_string())
-        .replace("{contribution_type}", contribution_type)
-    )
-
-    return f"\n\n{rendered_header}\n{content.strip()}\n"
-
-def preprocess_note_update(
-    existing_text: str,
-    incoming_content: str,
-    meta_ops_text: str,
-    persona_name: str,
-    contribution_type: str = "Contribution",
-) -> str:
-    existing_text = update_last_updated_field(existing_text)
-
-    if contribution_type == "Comment":
-        incoming_content = f"*{incoming_content.strip()}*"
-
-    processed_content = preprocess_contribution(
-        content=incoming_content,
-        meta_ops_text=meta_ops_text,
-        persona_name=persona_name,
-        contribution_type=contribution_type,
-    )
-
-    return f"{existing_text.rstrip()}\n\n{processed_content.strip()}\n"
-
-def update_last_updated_field(text: str) -> str:
-    if not text.startswith("---"):
-        return text
-
-    closing = text.find("\n---", 3)
-
-    if closing == -1:
-        return text
-
-    frontmatter = text[:closing]
-    body = text[closing:]
-
-    updated_value = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    if re.search(r"^Last Updated\s*:", frontmatter, re.MULTILINE):
-        frontmatter = re.sub(
-            r"^Last Updated\s*:.*$",
-            f"Last Updated: {updated_value}",
-            frontmatter,
-            flags=re.MULTILINE,
-        )
-
-    return frontmatter + body
