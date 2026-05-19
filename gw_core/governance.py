@@ -1,6 +1,10 @@
 from datetime import date, datetime
 import re 
 
+from pathlib import Path
+
+from .meta import read_meta_ops
+
 from .write_policy import (
     WritePolicy,
 )
@@ -671,3 +675,141 @@ def update_last_updated_field(text: str, persona_name: str | None = None) -> str
         frontmatter += f"\nlast updated by: {persona_name}"
 
     return frontmatter + body
+
+VALID_NOTE_ACTIONS = {"edit", "append", "comment"}
+
+
+def read_safety_catch(meta_ops: dict) -> bool:
+    sections = meta_ops.get("sections") or {}
+    section = sections.get("safety_catch") or {}
+
+    directive = section.get("directive", "On")
+
+    if not isinstance(directive, str):
+        return True
+
+    return directive.strip().lower() == "on"
+
+
+def is_in_persona_workspace(note_path: str, persona: str) -> bool:
+    normalised = note_path.replace("\\", "/").strip("/")
+    persona = persona.strip().strip("/")
+
+    return normalised.startswith(f"_collab/{persona}/")
+
+
+def _as_list(value) -> list[str]:
+    if value is None:
+        return []
+
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+
+    return [str(value).strip()] if str(value).strip() else []
+
+
+def _person_in_field(persona: str, value) -> bool:
+    persona_norm = persona.strip().lower()
+    return any(item.strip().lower() == persona_norm for item in _as_list(value))
+
+def is_author(persona: str, frontmatter: dict, meta_ops: dict) -> bool:
+    field_map = get_frontmatter_field_map(meta_ops)
+    field = field_map["author"]
+
+    return _person_in_field(
+        persona,
+        frontmatter.get(field),
+    )
+
+
+def is_contributor(persona: str, frontmatter: dict, meta_ops: dict) -> bool:
+    field_map = get_frontmatter_field_map(meta_ops)
+    field = field_map["contributor"]
+
+    return _person_in_field(
+        persona,
+        frontmatter.get(field),
+    )
+
+
+def is_commenter(persona: str, frontmatter: dict, meta_ops: dict) -> bool:
+    field_map = get_frontmatter_field_map(meta_ops)
+    field = field_map["commenter"]
+
+    return _person_in_field(
+        persona,
+        frontmatter.get(field),
+    )
+
+def read_note_frontmatter(
+    vault_root: Path,
+    note_path: str,
+) -> dict:
+    """
+    Read and parse YAML-style frontmatter from an existing note.
+
+    Missing notes, missing frontmatter, malformed frontmatter,
+    or invalid paths return an empty dict so permission checks fail closed.
+    """
+
+    vault_root = vault_root.resolve()
+    path = (vault_root / note_path).resolve()
+
+    if not path.is_relative_to(vault_root):
+        return {}
+
+    if not path.exists() or not path.is_file():
+        return {}
+
+    text = path.read_text(encoding="utf-8")
+
+    if not text.startswith("---"):
+        return {}
+
+    closing = text.find("\n---", 3)
+
+    if closing == -1:
+        return {}
+
+    frontmatter_text = text[3:closing].strip()
+
+    if not frontmatter_text:
+        return {}
+
+    return parse_simple_frontmatter(frontmatter_text)
+
+def can_perform_note_action(
+    vault_root: Path,
+    persona: str,
+    note_path: str,
+    action: str,
+    meta_ops: dict | None = None,
+) -> bool:
+    action = action.strip().lower()
+
+    if action not in VALID_NOTE_ACTIONS:
+        return False
+
+    # Own workspace remains implicitly owned.
+    if is_in_persona_workspace(note_path, persona):
+        return action in {"append", "comment"}
+
+    # Always read current governance unless caller deliberately injects meta_ops.
+    if meta_ops is None:
+        meta_ops = read_meta_ops(vault_root)
+
+    if read_safety_catch(meta_ops):
+        return False
+
+    frontmatter = read_note_frontmatter(vault_root, note_path)
+
+    if is_author(persona, frontmatter, meta_ops):
+        return action in {"edit", "append", "comment"}
+
+    if is_contributor(persona, frontmatter, meta_ops):
+        return action in {"append", "comment"}
+
+    if is_commenter(persona, frontmatter, meta_ops):
+        return action == "comment"
+
+    return False

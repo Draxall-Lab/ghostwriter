@@ -1,5 +1,272 @@
 # Changelog
 
+---
+
+## v0.5.0 - Portable Governance & Semantic Collaboration
+
+### Release Type
+Architecture / Governance / Collaboration Permissions
+
+- Portable Note Permissions
+- Governance-Aware Collaboration
+- Safety Catch Enforcement
+- Vault-Wide Append/Comment Permissions
+- Workspace Ownership Semantics
+- Governance Runtime Stabilisation
+
+---
+
+## Highlights
+
+Ghostwriter v0.5 introduces portable note-governed collaboration permissions.
+
+This release transitions Ghostwriter from workspace-bound collaborative mutation into governed vault-wide collaboration while preserving filesystem containment and operational restraint.
+
+Notes may now carry their own collaboration contracts through governed frontmatter roles.
+
+The collaboration model now separates:
+
+- workspace containment
+- note collaboration permissions
+- creation authority
+
+This significantly expands collaborative flexibility while maintaining deterministic governance and deny-first operational behaviour.
+
+---
+
+## New Features
+
+### Portable Collaboration Permissions
+Added governed note-level collaboration permissions through canonical metadata roles:
+
+- `author`
+- `contributor`
+- `commenter`
+
+Permission behaviour:
+
+| Role | Append | Comment | Edit |
+|---|---|---|---|
+| Author | Yes | Yes | Reserved for future versions |
+| Contributor | Yes | Yes | No |
+| Commenter | No | Yes | No |
+
+Permissions are deny-first.
+
+Missing metadata denies access outside collaborator-owned workspaces.
+
+---
+
+### Safety Catch Governance
+Added governance-level `Safety Catch` operational control.
+
+When enabled through `_meta/meta-ops.md`:
+
+- portable append/comment permissions are blocked
+- collaborator access outside owned workspaces is denied
+- workspace ownership behaviour remains intact
+
+This creates a hard environmental override layer above portable note permissions.
+
+---
+
+### Vault-Wide Note Resolution
+Added governed vault-wide note resolution for append and comment operations.
+
+Ghostwriter can now:
+
+- resolve existing notes across the vault
+- validate collaboration permissions through governance
+- preserve vault containment boundaries
+- maintain filesystem safety during collaborative mutation
+
+---
+
+### Workspace Ownership Semantics
+Collaborator workspaces now implicitly convey ownership semantics.
+
+Inside collaborator-owned workspaces:
+
+- append operations are allowed
+- comment operations are allowed
+- explicit role metadata is unnecessary
+
+This removes unnecessary metadata boilerplate for personal collaborator environments while preserving explicit governance outside owned workspaces.
+
+---
+
+### Governance Runtime Validation
+Added centralized governance-aware action validation through:
+
+```text
+can_perform_note_action()
+```
+
+This standardizes operational permission checks across:
+
+- append workflows
+- comment workflows
+- future edit workflows
+
+The governance layer now acts as the central behavioural permission authority.
+
+---
+
+## Governance Improvements
+
+### Canonical Governance Abstraction
+Expanded canonical metadata governance abstraction through:
+
+```text
+get_frontmatter_field_map()
+```
+
+Portable permissions now support:
+
+- governance field remapping
+- vault-native naming conventions
+- case-insensitive collaborator matching
+- future governance extensibility
+
+Example:
+
+```yaml
+discussion_participants:
+  - Alfred
+```
+
+may map canonically to:
+
+```text
+commenter
+```
+
+through governance.
+
+---
+
+### Governance Refresh Stability
+Improved operational governance reload behaviour during live collaborative sessions.
+
+Permission-sensitive operations now correctly refresh governance state during runtime evaluation.
+
+This prevents stale collaborator assumptions after governance changes.
+
+---
+
+## Internal Changes
+
+### New Permission Layer
+Added centralized governance permission evaluation.
+
+Responsibilities include:
+
+- workspace ownership validation
+- Safety Catch enforcement
+- role-based collaboration checks
+- portable permission handling
+- governance-aware operation gating
+
+---
+
+### Path Resolution Refactoring
+Separated:
+
+- workspace-contained path resolution
+from:
+- vault-wide existing note resolution
+
+This preserves filesystem containment while enabling governed vault-wide collaboration.
+
+---
+
+### Operational Separation Improvements
+Further clarified separation between:
+
+- filesystem safety
+- governance permissions
+- metadata mutation
+- presentation formatting
+- environmental structure
+
+---
+
+## Behavioural Improvements
+
+### Collaborative Clarity
+Permission denials now behave semantically rather than structurally.
+
+Collaborators now receive:
+
+- meaningful governance-aware denial behaviour
+- explicit operational boundaries
+- interpretable collaboration affordances
+
+rather than ambiguous filesystem-level failures.
+
+---
+
+### Environmental Coherence
+Collaborators now interpret vault permissions as environmental collaboration rules rather than arbitrary restrictions.
+
+Observed behaviours include:
+
+- workspace ownership understanding
+- portable note permission interpretation
+- governance-aware operational restraint
+- collaborator-specific environmental continuity
+
+---
+
+## Validated Behaviour
+
+Successfully validated:
+
+- Author append/comment permissions
+- Contributor append/comment permissions
+- Commenter comment-only permissions
+- deny-first behaviour for missing metadata
+- Safety Catch override enforcement
+- workspace implicit ownership
+- vault-root governed collaboration
+- case-insensitive collaborator matching
+- governance remapping support
+- portable permission enforcement
+- governance reload behaviour
+- cross-workspace append/comment restriction
+- filesystem containment preservation
+
+Validated across:
+
+- Windows development environments
+- Halo Linux environments
+- live Obsidian Notes Lab vaults
+- multi-collaborator interaction flows
+
+---
+
+## Architectural Direction
+
+v0.5 establishes the foundation for:
+
+- portable collaboration contracts
+- shared collaborative environments
+- permission inheritance
+- future edit-review systems
+- governance-aware collaborative tooling
+- vault-native semantic collaboration infrastructure
+
+while continuing to prioritise:
+
+- transparency
+- filesystem-native behaviour
+- human oversight
+- operational restraint
+- reviewable collaboration
+- deterministic governance
+
+---
+
 ## v0.4.5 - Governed Metadata Lifecycle
 
 ### Release Type
@@ -216,95 +483,3 @@ while continuing to prioritise:
 - Workspace boundaries preserved
 - Human reviewability maintained across all collaborative operations
 - Structural collaboration remains explicitly attributable and inspectable
-
----
-
-## v0.2.0
-
-### Added
-- Controlled collaborative write capabilities
-- AI working folder creation inside approved collaboration zones
-- Template-based blank note creation using `Templates/General Note.md`
-- Append-only collaborative note contributions
-- Persona-scoped workspace isolation
-- Write policy resolution layer (`write_policy.py`)
-- Filesystem-safe writer layer (`writer.py`)
-- Append target validation for owned collaborative notes
-- Raw append model with meta-ops-governed contribution formatting
-- New Ghostwriter tools:
-  - `ghostwriter_create_working_folder`
-  - `ghostwriter_create_blank_note`
-  - `ghostwriter_append_to_note`
-- Multi-persona collaboration testing and validation
-- Operational governance updates for v0.2 Stage 1
-- README documentation
-
-### Changed
-- Transitioned Ghostwriter from read-only retrieval into controlled collaborative authorship
-- Moved contribution formatting responsibility from hardcoded tool behaviour into `_meta/meta-ops.md`
-- Updated operational governance documents to support limited write permissions
-- Improved collaborator identity handling and working-folder enforcement
-- Standardised frontmatter population using vault-native template fields
-
-### Validated
-- Semantic workspace navigation
-- Working folder inference from collaborator identity
-- Template-native note creation
-- Append-only collaboration workflow
-- Multi-collaborator workspace separation
-- Meta-context refresh and governance reloading
-- Provenance-aware collaborative contributions
-- Persistent authored collaborative state
-
-### Safety
-- Append operations restricted to owned collaborative notes
-- No arbitrary vault editing
-- No delete or move capabilities
-- No silent content mutation
-- No unrestricted filesystem access
-- Human review and oversight preserved as core operational principle
-
----
-
-## v0.1.0
-
-### Added
-- Initial Ghostwriter filesystem-native Obsidian integration
-- Vault status checks
-- Markdown note listing
-- Markdown note reading
-- Frontmatter parsing
-- Meta-context loading from `_meta/guide-for-ai.md`
-- Meta-context loading from `_meta/meta-ops.md`
-- Semantic note retrieval through natural language reasoning
-- Wikilink navigation and semantic graph traversal
-- SMB/CIFS-mounted vault support
-- Windows and Linux validation environments
-
-### Added Operational Layer
-- `_meta/guide-for-ai.md`
-- `_meta/meta-ops.md`
-
-### Introduced Concepts
-- Environment-centric AI collaboration
-- Persistent collaborative workspace cognition
-- Operational governance through Markdown documents
-- Filesystem-native authored continuity
-- Identity-scoped collaboration
-- Human-reviewable collaboration architecture
-
-### Validated
-- Semantic retrieval without vector databases
-- Workspace structure interpretation
-- Natural wikilink traversal
-- Operational governance influence on collaborator behaviour
-- Vault-as-environment interaction model
-- Lightweight collaboration architecture using Markdown and filesystem primitives only
-
-### Design Principles
-- No vector database
-- No embeddings pipeline
-- No orchestration framework
-- No background agents
-- No autonomous mutation
-- Reviewable, constrained collaboration-first architecture

@@ -9,6 +9,7 @@ from .write_policy import (
     resolve_persona_working_folder,
     reject_workspace_prefixed_path,
     clean_path_input,
+    resolve_existing_vault_note_path,
 )
 
 from .templates import (
@@ -23,6 +24,7 @@ from .governance import (
     apply_mutation_frontmatter_updates,
     preprocess_note_metadata_update,
     preprocess_contribution,
+    can_perform_note_action,
 )
 
 import logging
@@ -132,7 +134,15 @@ def append_to_note(
 
     note_path = clean_path_input(note_path)
 
-    target = resolve_owned_note_path(vault_root, policy, note_path)
+    target = resolve_existing_vault_note_path(vault_root, note_path)
+
+    if not can_perform_note_action(
+        vault_root=vault_root,
+        persona=policy.persona_name,
+        note_path=note_path,
+        action="append",
+    ):
+        raise PermissionError("Permission denied. Ask the user for permission.")
 
     meta_ops = read_meta_ops(vault_root)
 
@@ -176,7 +186,15 @@ def comment_on_note(
     
     note_path = clean_path_input(note_path)
 
-    target = resolve_owned_note_path(vault_root, policy, note_path)
+    target = resolve_existing_vault_note_path(vault_root, note_path)
+
+    if not can_perform_note_action(
+        vault_root=vault_root,
+        persona=policy.persona_name,
+        note_path=note_path,
+        action="comment",
+):
+        raise PermissionError("Permission denied. Ask the user for permission.")
 
     if not target.exists():
         raise FileNotFoundError(f"Note not found: {note_path}")
