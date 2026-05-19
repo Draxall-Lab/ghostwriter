@@ -149,6 +149,124 @@ def merge_allowed_ai_frontmatter(
             
     return merged
 
+def pseudo_metadata_enabled(meta_ops: dict) -> bool:
+    sections = meta_ops.get("sections") or {}
+    section = sections.get("pseudo_metadata_handling") or {}
+    directive = section.get("directive", "")
+
+    return (
+        isinstance(directive, str)
+        and "enabled" in directive.lower()
+    )
+
+
+def parse_pseudo_meta_block(block_text: str) -> dict:
+    parsed = {}
+
+    for line in block_text.splitlines():
+        line = line.strip()
+
+        if not line or ":" not in line:
+            continue
+
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+
+        if not key:
+            continue
+
+        if "|" in value:
+            parsed[key] = [part.strip() for part in value.split("|") if part.strip()]
+        else:
+            parsed[key] = value
+
+    return parsed
+
+def extract_leading_pseudo_frontmatter_chain(
+    content: str,
+    meta_ops: dict,
+    max_blocks: int = 2,
+) -> tuple[dict, str]:
+    combined = {}
+
+    for _ in range(max_blocks):
+        extracted, content = extract_pseudo_frontmatter_from_content(
+            content=content,
+            meta_ops=meta_ops,
+        )
+
+        if not extracted:
+            break
+
+        combined = {
+            **combined,
+            **extracted,
+        }
+
+    return combined, content
+
+def extract_pseudo_frontmatter_from_content(
+    content: str,
+    meta_ops: dict,
+) -> tuple[dict, str]:
+    """
+    Extract explicitly bounded pseudo-metadata from the start of incoming AI content.
+
+    Supported only when enabled in meta-ops:
+    - leading --- ... --- block
+    - leading <meta> ... </meta> block
+
+    Returns:
+    - extracted metadata suggestions
+    - cleaned content
+    """
+
+    if not pseudo_metadata_enabled(meta_ops):
+        return {}, content
+
+    leading_len = len(content) - len(content.lstrip())
+    leading = content[:leading_len]
+    stripped = content.lstrip()
+
+    # YAML-style pseudo-frontmatter
+    if stripped.startswith("---"):
+        lines = stripped.splitlines()
+
+        if lines and lines[0].strip() == "---":
+            closing_index = None
+
+            for index, line in enumerate(lines[1:], start=1):
+                if line.strip() == "---":
+                    closing_index = index
+                    break
+
+            if closing_index is not None:
+                block_text = "\n".join(lines[1:closing_index])
+                parsed = parse_pseudo_meta_block(block_text)
+
+                if parsed:
+                    remaining = "\n".join(lines[closing_index + 1:]).lstrip()
+                    return parsed, f"{leading}{remaining}"
+
+    # XML-ish pseudo-meta
+    if stripped.lower().startswith("<meta>"):
+        close_match = re.search(
+            r"</meta>",
+            stripped,
+            flags=re.IGNORECASE,
+        )
+
+        if close_match:
+            block_text = stripped[len("<meta>"):close_match.start()]
+            parsed = parse_pseudo_meta_block(block_text)
+
+            if parsed:
+                remaining = stripped[close_match.end():].lstrip()
+                return parsed, f"{leading}{remaining}"
+
+    return {}, content
+
 def clean_mapping_token(value: str) -> str:
     return value.strip().strip("*`_").strip()
 
@@ -484,6 +602,17 @@ def preprocess_note_update(
     contribution_type: str = "Contribution",
     frontmatter: dict | None = None,
 ) -> str:
+    
+    pseudo_frontmatter, incoming_content = extract_pseudo_frontmatter_from_content(
+        content=incoming_content,
+        meta_ops=meta_ops,
+    )
+
+    if pseudo_frontmatter:
+        frontmatter = {
+            **pseudo_frontmatter,
+            **(frontmatter or {}),
+        }
 
     if frontmatter:
         existing_text = apply_ai_frontmatter_updates_to_existing_note(

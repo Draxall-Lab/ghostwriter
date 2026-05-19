@@ -2,7 +2,7 @@
 
 Ghostwriter is a Sapphire plugin that allows AI collaborators to interact with an Obsidian vault through controlled, filesystem-native operations.
 
-Rather than acting as an autonomous agent framework, Ghostwriter is designed as a lightweight collaboration layer built on top of:
+Rather than functioning as a traditional autonomous agent framework, Ghostwriter is designed as a lightweight collaboration layer built on top of:
 
 - Markdown
 - YAML frontmatter
@@ -11,6 +11,12 @@ Rather than acting as an autonomous agent framework, Ghostwriter is designed as 
 - operational governance through vault-native meta documents
 
 Ghostwriter treats the vault as a persistent collaborative environment rather than a simple document store.
+
+---
+
+# Related Projects
+
+Sapphire Core (by ddxfish) – the platform this plugin is built for: https://github.com/ddxfish/sapphire
 
 ---
 
@@ -39,11 +45,11 @@ The guiding principle is:
 
 ---
 
-# Current Capabilities (v0.4)
+# Current Capabilities (v0.4.5)
 
-# Deterministic Frontmatter Governance
+# Governed Metadata Lifecycle
 
-Ghostwriter v0.4 introduces template-governed note creation.
+Ghostwriter v0.4.5 introduces template-governed note creation.
 
 New notes are created using vault-defined templates referenced through:
 
@@ -58,7 +64,13 @@ Ghostwriter now supports:
 - deterministic frontmatter handling
 - template switching through governance
 - optional template disable mode
-- AI frontmatter override prevention
+- governed AI metadata suggestions
+- selective merge
+- protected field enforcement
+- template-bounded metadata mutation
+- governed semantic relationships through Obsidian wikilinks
+- curated related-note metadata
+- additive metadata evolution during collaborative mutations
 
 This ensures note structure remains consistent and human-governed while still allowing flexible vault-native workflows.
 
@@ -109,7 +121,7 @@ All writes are:
 
 # Operational Governance
 
-Ghostwriter v0.4 standardizes governance parsing using structured `--SECTION--` blocks inside `meta-ops.md`.
+Ghostwriter v0.4.5 standardizes governance parsing using structured `--SECTION--` blocks inside `meta-ops.md`.
 
 This allows:
 - deterministic operational parsing
@@ -205,6 +217,7 @@ gw_core/
   writer.py
   commenter.py
   templates.py
+  governance.py
 
 tools/
   ghostwriter_tools.py
@@ -259,10 +272,10 @@ Load meta-context
 
 # Current Status
 
-## v0.4
-In Progress
+## v0.4.5
+Completed
 
-Validated v0.4 capabilities:
+Validated v0.4.5 capabilities:
 
 - standardized governance parsing
 - template-path decoupling
@@ -310,6 +323,9 @@ Planned future exploration areas include:
 - shared collaborative spaces
 - multi-collaborator coordination
 - write audit logging
+- property-aware metadata governance
+- semantic relationship weighting
+- vault-native knowledge graph refinement
 
 Future development will continue prioritising:
 
