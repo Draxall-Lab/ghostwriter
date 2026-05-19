@@ -19,6 +19,10 @@ from gw_core.writer import (
 )
 from gw_core.write_policy import resolve_write_policy, load_meta_ops
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 ENABLED = True
 EMOJI = "🖋️"
@@ -141,31 +145,49 @@ TOOLS = [
         }
     },
     {
-        "type": "function",
-        "is_local": True,
-        "function": {
-            "name": "ghostwriter_append_to_note",
-            "description": "Append content to the end of an existing Markdown note inside your own Ghostwriter working folder. This is append-only and does not edit, delete, or replace existing content.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "persona_name": {
-                        "type": "string",
-                        "description": "The AI collaborator/persona name. This must match your own collaborator identity."
-                    },
-                    "note_path": {
-                        "type": "string",
-                        "description": "Vault-relative path to the Markdown note inside your own working folder, for example '_collab/Alfred/Test Note.md'."
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "The content to append to the end of the note."
-                    }
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_append_to_note",
+        "description": (
+            "Append content to the end of an existing Markdown note inside your own Ghostwriter working folder. "
+            "This is append-only and does not edit, delete, or replace existing content. "
+            "Use the optional frontmatter parameter for metadata suggestions. "
+            "Do not include YAML frontmatter inside content."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "The AI collaborator/persona name. This must match your own collaborator identity."
                 },
-                "required": ["persona_name", "note_path", "content"]
-            }
+                "note_path": {
+                    "type": "string",
+                    "description": "Vault-relative path to the Markdown note inside your own working folder, for example '_collab/Alfred/Test Note.md'."
+                },
+                "content": {
+                    "type": "string",
+                    "description": (
+                        "The content to append to the end of the note. "
+                        "Do not include YAML frontmatter here. "
+                        "Use the frontmatter parameter for metadata suggestions."
+                    )
+                },
+                "frontmatter": {
+                    "type": "object",
+                    "description": (
+                        "Optional metadata suggestions for the existing note. "
+                        "Only fields already present in the note/template and "
+                        "not governance-protected may be merged. "
+                        "Unknown fields and protected governance fields are ignored."
+                    )
+                }
+            },
+            "required": ["persona_name", "note_path", "content"]
         }
-    },
+    }
+},
     {
     "type": "function",
     "function": {
@@ -220,7 +242,13 @@ TOOLS = [
     "type": "function",
     "function": {
         "name": "ghostwriter_write_note",
-        "description": "Create and fully write a new Markdown note in a single operation. Preferred for creating complete notes with content. Refuses to overwrite existing notes.",
+        "description": (
+            "Create and fully write a new Markdown note in a single operation. "
+            "Preferred for creating complete notes with content. "
+            "Refuses to overwrite existing notes. "
+            "Use the optional frontmatter parameter for metadata suggestions. "
+            "Do not include YAML frontmatter inside content."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
@@ -230,11 +258,27 @@ TOOLS = [
                 },
                 "note_path": {
                     "type": "string",
-                    "description": "Path of the note to create, relative to your workspace or explicitly under _collab/{Persona Name}/."
+                    "description": (
+                        "Path of the note to create, relative to your workspace "
+                        "or explicitly under _collab/{Persona Name}/."
+                    )
                 },
                 "content": {
                     "type": "string",
-                    "description": "Full note content to write."
+                    "description": (
+                        "Markdown body content for the new note. "
+                        "Do not include YAML frontmatter here. "
+                        "Use the frontmatter parameter for metadata suggestions."
+                    )
+                },
+                "frontmatter": {
+                    "type": "object",
+                    "description": (
+                        "Optional metadata suggestions for the new note. "
+                        "Only fields already present in the selected template and "
+                        "not governance-protected may be merged. "
+                        "Unknown fields and protected governance fields are ignored."
+                    )
                 }
             },
             "required": [
@@ -250,7 +294,12 @@ TOOLS = [
     "is_local": True,
     "function": {
         "name": "ghostwriter_comment_on_note",
-        "description": "Add a block-level comment before or after a matched paragraph, heading, list item, or marker in a note. Does not edit existing text.",
+        "description": (
+            "Add a block-level comment before or after a matched paragraph, heading, list item, or marker in a note. "
+            "Does not edit existing text. "
+            "Use the optional frontmatter parameter for metadata suggestions. "
+            "Do not include YAML frontmatter inside comment."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
@@ -268,7 +317,11 @@ TOOLS = [
                 },
                 "comment": {
                     "type": "string",
-                    "description": "The comment/contribution to insert as a separate block."
+                    "description": (
+                        "The comment/contribution to insert as a separate block. "
+                        "Do not include YAML frontmatter here. "
+                        "Use the frontmatter parameter for metadata suggestions."
+                    )
                 },
                 "position": {
                     "type": "string",
@@ -279,6 +332,15 @@ TOOLS = [
                     "type": "string",
                     "enum": ["paragraph", "heading", "list_item", "marker", "any"],
                     "default": "any"
+                },
+                "frontmatter": {
+                    "type": "object",
+                    "description": (
+                        "Optional metadata suggestions for the existing note. "
+                        "Only fields already present in the note/template and "
+                        "not governance-protected may be merged. "
+                        "Unknown fields and protected governance fields are ignored."
+                    )
                 }
             },
             "required": ["persona_name", "note_path", "anchor", "comment"]
@@ -372,6 +434,20 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             persona_name = arguments.get("persona_name", "")
             note_path = arguments.get("note_path", "")
             content = arguments.get("content", "")
+            frontmatter = arguments.get("frontmatter")
+
+            if frontmatter is None:
+                reserved_keys = {
+                    "persona_name",
+                    "note_path",
+                    "content",
+                }
+
+                frontmatter = {
+                    key: value
+                    for key, value in arguments.items()
+                    if key not in reserved_keys
+                } or None
 
             if not persona_name:
                 raise ValueError("persona_name is required")
@@ -390,6 +466,7 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
                 policy=policy,
                 note_path=note_path,
                 content=content,
+                frontmatter=frontmatter,
             )
 
             return _json_result(_ok("appended_to_note", appended_path)), True
@@ -451,6 +528,20 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             persona_name = arguments.get("persona_name", "")
             note_path = arguments.get("note_path", "")
             content = arguments.get("content", "")
+            frontmatter = arguments.get("frontmatter")
+
+            if frontmatter is None:
+                reserved_keys = {
+                    "persona_name",
+                    "note_path",
+                    "content",
+                }
+
+                frontmatter = {
+                    key: value
+                    for key, value in arguments.items()
+                    if key not in reserved_keys
+                } or None
 
             if not persona_name:
                 raise ValueError("persona_name is required")
@@ -463,6 +554,7 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
                 policy=policy,
                 note_path=note_path,
                 content=content,
+                frontmatter=frontmatter,
             )
 
             return _json_result(_ok("created_note", note)), True
@@ -478,6 +570,23 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             comment = arguments.get("comment", "")
             position = arguments.get("position", "after")
             block_type = arguments.get("block_type", "any")
+            frontmatter = arguments.get("frontmatter")
+
+            if frontmatter is None:
+                reserved_keys = {
+                    "persona_name",
+                    "note_path",
+                    "anchor",
+                    "comment",
+                    "position",
+                    "block_type",
+                }
+
+                frontmatter = {
+                    key: value
+                    for key, value in arguments.items()
+                    if key not in reserved_keys
+                } or None
 
             if not persona_name:
                 raise ValueError("persona_name is required")
@@ -493,11 +602,10 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
                 comment=comment,
                 position=position,
                 block_type=block_type,
+                frontmatter=frontmatter,
             )
 
             return _json_result(_ok("comment_added", result)), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False
-
-    return f"Unknown Ghostwriter function: {function_name}", False

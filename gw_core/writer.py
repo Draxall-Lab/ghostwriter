@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 import shutil
 
+from gw_core.commenter import insert_comment_block
+
 from .write_policy import (
     WritePolicy,
     resolve_persona_working_folder,
@@ -16,8 +18,16 @@ from .templates import (
 from .governance import (
     sanitise_note_title,
     preprocess_note_update,
-    update_last_updated_field,
+    preprocess_contribution,
+    apply_ai_frontmatter_updates_to_existing_note,
+    apply_mutation_frontmatter_updates,
+    preprocess_note_metadata_update,
+    preprocess_contribution,
 )
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_ai_working_folder(vault_root: Path, policy: WritePolicy) -> Path:
     working_folder = resolve_persona_working_folder(vault_root, policy)
@@ -112,6 +122,7 @@ def append_to_note(
     policy: WritePolicy,
     note_path: str,
     content: str,
+    frontmatter=None
 ) -> Path:
     from .write_policy import resolve_owned_note_path
     from .meta import read_meta_ops
@@ -136,6 +147,7 @@ def append_to_note(
         meta_ops=meta_ops,
         persona_name=policy.persona_name,
         contribution_type="Contribution",
+        frontmatter=frontmatter,
     )
 
     target.write_text(updated_text, encoding="utf-8")
@@ -150,6 +162,7 @@ def comment_on_note(
     comment: str,
     position: str = "after",
     block_type: str = "any",
+    frontmatter=None,
 ) -> Path:
     from .write_policy import resolve_owned_note_path
     from .commenter import insert_comment_block
@@ -172,26 +185,32 @@ def comment_on_note(
 
     existing_text = target.read_text(encoding="utf-8")
 
-    existing_text = update_last_updated_field(
-        existing_text,
-        policy.persona_name,
-    )
+    existing_text = preprocess_note_metadata_update(
+    existing_text=existing_text,
+    meta_ops=meta_ops,
+    persona_name=policy.persona_name,
+    frontmatter=frontmatter,
+)
 
-    comment_text = preprocess_note_update(
-        existing_text="",
-        incoming_content=comment,
-        meta_ops=meta_ops,
-        persona_name=policy.persona_name,
-        contribution_type="Comment",
-    ).strip()
+    comment_text = preprocess_contribution(
+    content=f"*{comment.strip()}*",
+    meta_ops=meta_ops,
+    persona_name=policy.persona_name,
+    contribution_type="Comment",
+).strip()
 
-    updated_text, _match = insert_comment_block(
-        note_text=existing_text,
-        anchor=anchor,
-        comment_block=comment_text,
-        position=position,
-        block_type=block_type,
-    )
+    updated = insert_comment_block(
+    note_text=existing_text,
+    anchor=anchor,
+    comment_block=comment_text,
+    position=position,
+    block_type=block_type,
+)
+
+    if updated is None:
+      raise RuntimeError("Failed to insert comment block")
+
+    updated_text, _match = updated
 
     target.write_text(updated_text, encoding="utf-8")
 
@@ -337,6 +356,7 @@ def write_note(
     policy: WritePolicy,
     note_path: str,
     content: str,
+    frontmatter: dict | None = None,
 ) -> Path:
 
     if not note_path or not note_path.strip():
@@ -350,9 +370,10 @@ def write_note(
     target.parent.mkdir(parents=True, exist_ok=True)
 
     frontmatter_block = load_template_frontmatter_for_new_note(
-        vault_root=vault_root,
-        persona_name=policy.persona_name,
-    )
+    vault_root=vault_root,
+    persona_name=policy.persona_name,
+    ai_frontmatter=frontmatter,
+)
 
     if frontmatter_block is None:
         final_content = strip_frontmatter_block(content).strip()

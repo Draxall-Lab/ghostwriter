@@ -5,6 +5,254 @@ from .write_policy import (
     WritePolicy,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+DEFAULT_FRONTMATTER_FIELD_MAP = {
+    "author": "author",
+    "created": "created",
+    "created_by": "created by",
+    "last_updated": "last updated",
+    "last_updated_by": "last updated by",
+    "contributor": "contributor",
+    "commenter": "commenter",
+    "related": "related",
+}
+
+PROTECTED_FRONTMATTER_ROLES = {
+    "author",
+    "created",
+    "created_by",
+    "last_updated",
+    "last_updated_by",
+    "contributor",
+    "commenter",
+}
+
+def preprocess_note_metadata_update(
+    existing_text: str,
+    meta_ops: dict,
+    persona_name: str,
+    frontmatter: dict | None = None,
+) -> str:
+    if frontmatter:
+        existing_text = apply_ai_frontmatter_updates_to_existing_note(
+            existing_text=existing_text,
+            ai_frontmatter=frontmatter,
+            meta_ops=meta_ops,
+        )
+
+    return apply_mutation_frontmatter_updates(
+        existing_text=existing_text,
+        meta_ops=meta_ops,
+        persona_name=persona_name,
+    )
+
+def normalize_related_links(value, limit: int = 5) -> list[str]:
+    """
+    Normalize related metadata entries into Obsidian wikilinks.
+
+    Accepts a list or scalar value. Empty values are discarded.
+    """
+
+    values = value if isinstance(value, list) else [value]
+    cleaned = []
+
+    for item in values:
+        text = str(item).strip()
+
+        if not text:
+            continue
+
+        if text.startswith("[[") and text.endswith("]]"):
+            cleaned.append(text)
+        else:
+            cleaned.append(f"[[{text}]]")
+
+        if len(cleaned) >= limit:
+            break
+
+    return cleaned
+
+def merge_list_values(existing, incoming, limit: int | None = None) -> list:
+    existing_values = existing if isinstance(existing, list) else [existing]
+    incoming_values = incoming if isinstance(incoming, list) else [incoming]
+
+    merged = []
+
+    for item in existing_values + incoming_values:
+        if item in (None, "", [], {}):
+            continue
+
+        if item not in merged:
+            merged.append(item)
+
+        if limit is not None and len(merged) >= limit:
+            break
+
+    return merged
+
+def merge_allowed_ai_frontmatter(
+    template_frontmatter: dict,
+    ai_frontmatter: dict,
+    meta_ops: dict,
+) -> dict:
+    """
+    Merge AI-supplied frontmatter into template frontmatter.
+
+    Rules:
+    - only fields already present in the template may be updated
+    - protected governance fields are never updated from AI input
+    - unknown AI fields are discarded
+    """
+
+    field_map = get_frontmatter_field_map(meta_ops)
+
+    protected_field_names = {
+        field_map[role]
+        for role in PROTECTED_FRONTMATTER_ROLES
+        if role in field_map
+    }
+
+    merged = template_frontmatter.copy()
+
+    for field_name, value in ai_frontmatter.items():
+        if field_name not in template_frontmatter:
+            continue
+
+        if field_name in protected_field_names:
+            continue
+
+        if value in (None, "", [], {}):
+            continue
+
+        if field_name == field_map.get("related"):
+            value = normalize_related_links(value)
+
+            if not value:
+                continue
+
+        existing_value = merged.get(field_name)
+
+        if isinstance(existing_value, list) or isinstance(value, list):
+            limit = 5 if field_name == field_map.get("related") else None
+
+            merged[field_name] = merge_list_values(
+                existing=existing_value,
+                incoming=value,
+                limit=limit,
+            )
+        else:
+            merged[field_name] = value
+            
+    return merged
+
+def clean_mapping_token(value: str) -> str:
+    return value.strip().strip("*`_").strip()
+
+def get_frontmatter_field_map(meta_ops: dict) -> dict[str, str]:
+    field_map = DEFAULT_FRONTMATTER_FIELD_MAP.copy()
+
+    sections = meta_ops.get("sections") or {}
+    mapping_section = sections.get("frontmatter_field_mapping") or {}
+
+    directive = mapping_section.get("directive", "")
+
+    if not isinstance(directive, str):
+        return field_map
+
+    for line in directive.splitlines():
+        line = line.strip()
+
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+
+        internal_name, mapped_name = line.split(":", 1)
+
+        internal_name = internal_name.strip()
+        mapped_name = mapped_name.strip()
+
+        internal_name = clean_mapping_token(internal_name)
+        mapped_name = clean_mapping_token(mapped_name)
+
+        if internal_name in field_map and mapped_name:
+            field_map[internal_name] = mapped_name
+
+    return field_map
+
+def apply_mutation_frontmatter_updates(
+    existing_text: str,
+    meta_ops: dict,
+    persona_name: str,
+) -> str:
+    """
+    Update canonical maintenance fields during append/comment operations.
+
+    Uses field mappings from meta-ops.
+    Preserves all unknown frontmatter fields unchanged.
+    """
+
+    if not existing_text.startswith("---"):
+        return existing_text
+
+    closing = existing_text.find("\n---", 3)
+
+    if closing == -1:
+        return existing_text
+
+    frontmatter = existing_text[:closing]
+    body = existing_text[closing:]
+
+    field_map = get_frontmatter_field_map(meta_ops)
+
+    last_updated_field = field_map["last_updated"]
+    last_updated_by_field = field_map["last_updated_by"]
+
+    updated_value = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    lines = frontmatter.splitlines()
+    new_lines = []
+
+    skip_multiline_field = None
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Skip list continuation lines for protected fields
+        if skip_multiline_field:
+            if stripped.startswith("- "):
+                continue
+
+            skip_multiline_field = None
+
+        # Update last updated
+        if re.match(
+            rf"^{re.escape(last_updated_field)}\s*:",
+            stripped,
+            re.IGNORECASE,
+        ):
+            new_lines.append(f"{last_updated_field}: {updated_value}")
+            continue
+
+        # Update last updated by
+        if re.match(
+            rf"^{re.escape(last_updated_by_field)}\s*:",
+            stripped,
+            re.IGNORECASE,
+        ):
+            new_lines.append(
+                f"{last_updated_by_field}: {persona_name}"
+            )
+
+            skip_multiline_field = last_updated_by_field
+            continue
+
+        new_lines.append(line)
+
+    return "\n".join(new_lines) + body
+
 def strip_incoming_contribution_header(content: str) -> str:
     """
     Remove model-supplied contribution/comment headers before applying
@@ -146,17 +394,108 @@ def preprocess_contribution(
 
     return f"\n\n{rendered_header}\n{content.strip()}\n"
 
+def apply_ai_frontmatter_updates_to_existing_note(
+    existing_text: str,
+    ai_frontmatter: dict,
+    meta_ops: dict,
+) -> str:
+    """
+    Apply governed AI-supplied frontmatter updates to an existing note.
+
+    Rules are inherited from merge_allowed_ai_frontmatter():
+    - only existing frontmatter fields may be updated
+    - protected governance fields are ignored
+    - unknown fields are discarded
+    - related is normalised into Obsidian wikilinks
+    """
+
+    if not existing_text.startswith("---"):
+        return existing_text
+
+    closing = existing_text.find("\n---", 3)
+
+    if closing == -1:
+        return existing_text
+
+    frontmatter_text = existing_text[3:closing].strip()
+    body = existing_text[closing:]
+
+    template_frontmatter = parse_simple_frontmatter(frontmatter_text)
+
+    merged_frontmatter = merge_allowed_ai_frontmatter(
+        template_frontmatter=template_frontmatter,
+        ai_frontmatter=ai_frontmatter,
+        meta_ops=meta_ops,
+    )
+
+    rendered_frontmatter = render_simple_frontmatter(merged_frontmatter)
+
+    return f"---\n{rendered_frontmatter}\n{body}"
+
+def parse_simple_frontmatter(frontmatter_text: str) -> dict:
+    parsed = {}
+    current_key = None
+
+    for line in frontmatter_text.splitlines():
+        if not line.strip():
+            continue
+
+        if line.lstrip().startswith("- ") and current_key:
+            if not isinstance(parsed.get(current_key), list):
+                parsed[current_key] = []
+
+            parsed[current_key].append(line.strip()[2:].strip())
+            continue
+
+        if ":" not in line:
+            continue
+
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+
+        if value == "":
+            parsed[key] = ""
+            current_key = key
+        else:
+            parsed[key] = value
+            current_key = key
+
+    return parsed
+
+def render_simple_frontmatter(frontmatter: dict) -> str:
+    lines = []
+
+    for key, value in frontmatter.items():
+        if isinstance(value, list):
+            lines.append(f"{key}:")
+            for item in value:
+                lines.append(f"  - {item}")
+        else:
+            lines.append(f"{key}: {value}")
+
+    return "\n".join(lines)
+
 def preprocess_note_update(
     existing_text: str,
     incoming_content: str,
     meta_ops: dict,
     persona_name: str,
     contribution_type: str = "Contribution",
+    frontmatter: dict | None = None,
 ) -> str:
 
-    existing_text = update_last_updated_field(
-        existing_text,
-        persona_name,
+    if frontmatter:
+        existing_text = apply_ai_frontmatter_updates_to_existing_note(
+            existing_text=existing_text,
+            ai_frontmatter=frontmatter,
+            meta_ops=meta_ops,
+        )
+     
+    existing_text = apply_mutation_frontmatter_updates(
+        existing_text=existing_text,
+        meta_ops=meta_ops,
+        persona_name=persona_name,
     )
 
     if contribution_type == "Comment":
