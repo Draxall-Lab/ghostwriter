@@ -16,7 +16,8 @@ Ghostwriter treats the vault as a persistent collaborative environment rather th
 
 # Related Projects
 
-Sapphire Core (by ddxfish) – the platform this plugin is built for: https://github.com/ddxfish/sapphire
+[Sapphire Core](https://github.com/ddxfish/sapphire)  
+The platform Ghostwriter is built for.
 
 ---
 
@@ -30,6 +31,7 @@ Ghostwriter is designed around:
 - constrained capabilities
 - human oversight
 - environment-driven cognition
+- vault-native operational governance
 
 The project intentionally avoids:
 
@@ -45,19 +47,21 @@ The guiding principle is:
 
 ---
 
-# Current Capabilities (v0.4.5)
+# Current Capabilities (v0.5)
 
-# Governed Metadata Lifecycle
+## Governed Metadata Lifecycle
 
-Ghostwriter v0.4.5 introduces template-governed note creation.
+Ghostwriter v0.5 introduces governed semantic metadata evolution through vault-native operational policy.
 
 New notes are created using vault-defined templates referenced through:
 
+```text
 _meta/meta-ops.md
+```
 
 Template selection is governed through standardized operational sections rather than hardcoded plugin configuration.
 
-Ghostwriter now supports:
+Ghostwriter supports:
 
 - exact template path resolution
 - canonical metadata patching
@@ -65,14 +69,47 @@ Ghostwriter now supports:
 - template switching through governance
 - optional template disable mode
 - governed AI metadata suggestions
-- selective merge
+- selective metadata merge
 - protected field enforcement
 - template-bounded metadata mutation
 - governed semantic relationships through Obsidian wikilinks
 - curated related-note metadata
 - additive metadata evolution during collaborative mutations
+- canonical governance field abstraction
+- portable collaboration permissions
+- pseudo-metadata extraction and sanitisation
 
-This ensures note structure remains consistent and human-governed while still allowing flexible vault-native workflows.
+This allows note structure and governance semantics to evolve independently while remaining fully human-readable and vault-native.
+
+---
+
+## Portable Governance Permissions
+
+Ghostwriter v0.5 introduces portable note-governed collaboration permissions.
+
+Existing notes may grant collaboration permissions through governed frontmatter roles:
+
+- Author
+- Contributor
+- Commenter
+
+Role behaviour:
+
+| Role | Append | Comment | Edit |
+|---|---|---|---|
+| Author | Yes | Yes | Reserved for future versions |
+| Contributor | Yes | Yes | No |
+| Commenter | No | Yes | No |
+
+Permission behaviour is deny-first.
+
+Notes without collaboration metadata deny access outside collaborator-owned workspaces.
+
+Ghostwriter also introduces a governance-level Safety Catch.
+
+When enabled through `_meta/meta-ops.md`, portable permissions are disabled outside collaborator-owned workspaces regardless of note metadata.
+
+This preserves the core containment model while allowing governed collaboration where explicitly permitted.
 
 ---
 
@@ -93,14 +130,12 @@ AI collaborators can navigate Obsidian wikilinks and semantically resolve releva
 
 ## Controlled Collaborative Writes
 
-Ghostwriter v0.3 introduces contextual collaborative write capabilities.
+Ghostwriter supports controlled additive collaboration operations.
 
 Current supported operations:
 
 - create AI working folders
-- create blank notes from templates
-- append content to existing collaborative notes
-- workspace-scoped folder creation
+- create workspace-scoped folders
 - nested collaborative folder creation
 - create blank notes from templates
 - create fully-written notes
@@ -108,23 +143,34 @@ Current supported operations:
 - contextual block-level comments
 - workspace-safe file moves
 
-Comment operations are block-level and additive. Ghostwriter does not currently perform inline sentence rewriting or destructive edits.
+Comment operations are additive and contextual.
+
+Ghostwriter does not currently perform:
+
+- inline sentence rewriting
+- silent mutation
+- destructive editing
+- arbitrary vault editing
+- autonomous restructuring
 
 All writes are:
 
 - filesystem-native
 - human-reviewable
 - attribution-aware
-- constrained by operational policy
+- governance-constrained
+- operationally inspectable
 
 ---
 
 # Operational Governance
 
-Ghostwriter v0.4.5 standardizes governance parsing using structured `--SECTION--` blocks inside `meta-ops.md`.
+Ghostwriter standardizes governance parsing using structured `--SECTION--` blocks inside `meta-ops.md`.
 
-This allows:
+This enables:
+
 - deterministic operational parsing
+- portable governance semantics
 - future tooling compatibility
 - vault-native governance evolution
 - human-readable operational agreements
@@ -149,8 +195,10 @@ These documents define:
 - authorship expectations
 - workspace conventions
 - append formatting
-- operational behaviour
+- metadata governance
+- portable permissions
 - collaboration zones
+- operational behaviour
 
 This governance layer acts as a lightweight operational constitution for AI collaborators.
 
@@ -167,40 +215,84 @@ _collab/Alfred/
 _collab/Sapphire/
 ```
 
-Each AI collaborator maintains its own working folder.
+Each AI collaborator maintains its own workspace folder.
 
-During v0.3:
+Collaborator workspaces imply ownership for that collaborator.
 
-- collaborators may create folders inside their own workspace
-- collaborators may create fully-authored notes
-- collaborators may append to notes
-- collaborators may add contextual comments to notes
-- collaborators may move files inside their own workspace
-- arbitrary vault editing is not permitted
-- inline destructive editing is not permitted
-- deleting content is not permitted
+Inside their own workspace:
+
+- append and comment operations are implicitly permitted
+- note creation is permitted
+- folder creation is permitted
+
+Outside collaborator workspaces:
+
+- append/comment access requires governed note permissions
+- operations remain constrained by Safety Catch
+- destructive editing remains unavailable
+
+Ghostwriter intentionally separates:
+
+- workspace containment
+- note collaboration permissions
+- creation authority
+
+This keeps filesystem safety and collaborative governance as distinct operational layers.
 
 ---
 
 # Contribution Model
 
-Ghostwriter currently uses an additive collaboration model.
+Ghostwriter uses an additive collaboration model.
 
-Supported contribution behaviours include:
+Supported behaviours include:
 
 - end-of-note append contributions
 - contextual block-level comments
 - explicit provenance attribution
-- non-destructive collaborative annotations
+- governed metadata evolution
+- semantic relationship refinement
+- non-destructive collaborative annotation
+
+Formatting conventions are governed through meta-ops rather than hardcoded into the plugin.
 
 Ghostwriter does not currently perform:
 
 - inline sentence rewriting
-- silent content mutation
 - destructive editing
+- silent content mutation
 - autonomous restructuring
 
-Formatting conventions are governed through meta-ops rather than hardcoded into the plugin.
+---
+
+# Pseudo-Metadata Handling
+
+Ghostwriter supports governed pseudo-metadata extraction from incoming AI-generated content.
+
+Supported formats:
+
+```text
+--- ... ---
+```
+
+and:
+
+```text
+<meta> ... </meta>
+```
+
+Pseudo-metadata handling is:
+
+- opt-in through governance
+- explicitly bounded
+- processed only at the beginning of incoming content
+- passed through normal governance protections
+
+Malformed or ambiguous pseudo-metadata is preserved rather than destructively interpreted.
+
+Design principle:
+
+> Fail visible, not destructive.
 
 ---
 
@@ -234,7 +326,7 @@ routes/
 
 # Design Approach
 
-Ghostwriter intentionally uses extremely lightweight primitives.
+Ghostwriter intentionally uses lightweight primitives.
 
 There is currently:
 
@@ -247,9 +339,10 @@ Instead, Ghostwriter relies on:
 
 - semantic reasoning
 - persistent environment structure
-- operational context
 - authored continuity
 - workspace conventions
+- operational governance
+- vault-native cognition scaffolding
 
 The resulting behaviour has proven significantly more coherent than expected from such minimal infrastructure.
 
@@ -264,6 +357,7 @@ Load meta-context
 → establish collaborator identity
 → resolve workspace boundaries
 → retrieve relevant notes semantically
+→ evaluate governance permissions
 → create, append, or comment contextually
 → preserve authored continuity and provenance
 ```
@@ -272,40 +366,32 @@ Load meta-context
 
 # Current Status
 
-## v0.4.5
+## v0.5
 Completed
 
-Validated v0.4.5 capabilities:
+Validated v0.5 capabilities:
 
 - standardized governance parsing
 - template-path decoupling
 - deterministic frontmatter injection
 - canonical metadata enforcement
-- template-governed note creation
-- optional template disable mode
-- AI metadata override prevention
-
-Validated capabilities:
-
-- working folder creation
-- template-based note creation
-- append operations
-- multi-persona workspace isolation
-- provenance-aware contributions
+- governed semantic metadata mutation
+- protected governance fields
+- additive metadata merge behaviour
+- related-link normalization
+- pseudo-metadata extraction
+- append/comment governance parity
+- portable collaboration permissions
+- workspace ownership semantics
+- Safety Catch operational override
+- vault-wide governed append/comment behaviour
+- case-insensitive collaborator role matching
 - operational governance refresh
 - semantic workspace navigation
-- workspace-scoped folder creation
-- nested folder creation
-- template-based note creation
-- full note writing
-- append contributions
+- multi-persona workspace isolation
+- provenance-aware contributions
 - contextual block-level comments
 - workspace-safe file moves
-- provenance-aware contributions
-- operational governance refresh
-- semantic workspace navigation
-- additive collaborative annotation
-- multi-persona workspace isolation
 
 ---
 
@@ -325,7 +411,11 @@ Planned future exploration areas include:
 - write audit logging
 - property-aware metadata governance
 - semantic relationship weighting
-- vault-native knowledge graph refinement
+- vault-native graph refinement
+- permission inheritance
+- activity heatmaps
+- attention resurfacing
+- semantic confidence layers
 
 Future development will continue prioritising:
 
@@ -348,4 +438,10 @@ Human collaborators remain responsible for:
 - operational decisions
 - workspace governance
 
-Ghostwriter is intentionally designed to remain inspectable, constrained, and understandable.
+Ghostwriter is intentionally designed to remain:
+
+- inspectable
+- constrained
+- reviewable
+- understandable
+- filesystem-transparent

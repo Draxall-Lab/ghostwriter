@@ -146,3 +146,34 @@ def resolve_owned_note_path(vault_root: Path, policy: WritePolicy, note_path: st
         raise FileNotFoundError(f"Note not found: {requested}")
 
     return target
+
+def resolve_existing_vault_note_path(
+    vault_root: Path,
+    note_path: str,
+) -> Path:
+    if not note_path or not note_path.strip():
+        raise ValueError("note_path is required")
+
+    requested = note_path.strip().replace("\\", "/")
+
+    if requested.startswith("/"):
+        raise PermissionError("Absolute paths are not allowed")
+
+    if ".." in Path(requested).parts:
+        raise PermissionError("Path traversal is not allowed")
+
+    vault_root = vault_root.resolve()
+    target = (vault_root / requested).resolve()
+
+    try:
+        target.relative_to(vault_root)
+    except ValueError:
+        raise PermissionError("Note path must stay inside the vault")
+
+    if target.suffix.lower() != ".md":
+        raise ValueError("Target must be a Markdown note")
+
+    if not target.exists():
+        raise FileNotFoundError(f"Note not found: {requested}")
+
+    return target
