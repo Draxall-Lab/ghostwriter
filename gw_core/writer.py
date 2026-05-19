@@ -359,21 +359,37 @@ def write_note(
     frontmatter: dict | None = None,
 ) -> Path:
 
+    from .meta import read_meta_ops
+    from .governance import extract_leading_pseudo_frontmatter_chain
+
     if not note_path or not note_path.strip():
         raise ValueError("note_path is required")
 
     if not content or not content.strip():
         raise ValueError("content is required")
 
+    meta_ops = read_meta_ops(vault_root)
+
+    pseudo_frontmatter, content = extract_leading_pseudo_frontmatter_chain(
+        content=content,
+        meta_ops=meta_ops,
+    )
+
+    if pseudo_frontmatter:
+        frontmatter = {
+            **pseudo_frontmatter,
+            **(frontmatter or {}),
+        }
+
     target = resolve_new_note_path(vault_root, policy, note_path)
 
     target.parent.mkdir(parents=True, exist_ok=True)
 
     frontmatter_block = load_template_frontmatter_for_new_note(
-    vault_root=vault_root,
-    persona_name=policy.persona_name,
-    ai_frontmatter=frontmatter,
-)
+        vault_root=vault_root,
+        persona_name=policy.persona_name,
+        ai_frontmatter=frontmatter,
+    )
 
     if frontmatter_block is None:
         final_content = strip_frontmatter_block(content).strip()
@@ -387,4 +403,3 @@ def write_note(
     target.write_text(final_content, encoding="utf-8")
 
     return target
-

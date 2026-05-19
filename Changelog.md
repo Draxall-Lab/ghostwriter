@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.4.5 - Governed Metadata Lifecycle
+
+### Release Type
+Architecture / Governance / Semantic Metadata Expansion
+
+- Metadata Governance Expansion
+- Mutation Metadata Support
+- Frontmatter Mapping Abstraction
+- Additive Semantic Merging
+- Pseudo-Metadata Handling
+- Live Vault Behaviour Validation
+
+
 ## v0.4.0 - Governance & Frontmatter Foundation
 
 ### Release Type
