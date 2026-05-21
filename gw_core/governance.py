@@ -87,6 +87,17 @@ def merge_list_values(existing, incoming, limit: int | None = None) -> list:
     merged = []
 
     for item in existing_values + incoming_values:
+
+        if isinstance(item, list):
+            for nested in item:
+                if nested in (None, "", [], {}):
+                    continue
+
+                if nested not in merged:
+                    merged.append(nested)
+
+            continue
+
         if item in (None, "", [], {}):
             continue
 
@@ -404,6 +415,8 @@ def strip_incoming_contribution_header(content: str) -> str:
 
 def sanitise_note_title(title: str) -> str:
     cleaned = title.strip()
+
+    cleaned = re.sub(r"^[^A-Za-z0-9]+", "", cleaned)
 
     if not cleaned:
         raise ValueError("Note title is required")
@@ -792,7 +805,7 @@ def can_perform_note_action(
 
     # Own workspace remains implicitly owned.
     if is_in_persona_workspace(note_path, persona):
-        return action in {"append", "comment"}
+        return action in {"edit","append", "comment"}
 
     # Always read current governance unless caller deliberately injects meta_ops.
     if meta_ops is None:

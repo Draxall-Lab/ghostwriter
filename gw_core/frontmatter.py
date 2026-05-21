@@ -5,6 +5,13 @@ import yaml
 
 from datetime import date, datetime
 
+from pathlib import Path
+
+from .write_policy import (
+    WritePolicy,
+    clean_path_input,
+)
+
 FRONTMATTER_PATTERN = re.compile(
     r"^---\s*\n(.*?)\n---\s*\n?",
     re.DOTALL
@@ -167,3 +174,50 @@ def make_json_safe(value):
         return [make_json_safe(item) for item in value]
 
     return value
+
+def insert_frontmatter(
+    vault_root: Path,
+    policy: WritePolicy,
+    note_path: str,
+    frontmatter: dict,
+) -> Path:
+    from .governance import preprocess_note_metadata_update
+    from .meta import read_meta_ops
+    from .governance import can_perform_note_action
+    from .write_policy import resolve_existing_vault_note_path
+
+    if not note_path or not note_path.strip():
+        raise ValueError("note_path is required")
+
+    if not frontmatter:
+        raise ValueError("frontmatter is required")
+
+    note_path = clean_path_input(note_path)
+
+    target = resolve_existing_vault_note_path(vault_root, note_path)
+
+    if not can_perform_note_action(
+        vault_root=vault_root,
+        persona=policy.persona_name,
+        note_path=note_path,
+        action="edit",
+    ):
+        raise PermissionError("Blocked, ask user for permission")
+
+    if not target.exists():
+        raise FileNotFoundError(f"Note not found: {note_path}")
+
+    meta_ops = read_meta_ops(vault_root)
+
+    existing_text = target.read_text(encoding="utf-8")
+
+    updated_text = preprocess_note_metadata_update(
+        existing_text=existing_text,
+        meta_ops=meta_ops,
+        persona_name=policy.persona_name,
+        frontmatter=frontmatter,
+    )
+
+    target.write_text(updated_text, encoding="utf-8")
+
+    return target

@@ -142,12 +142,18 @@ E:\Obsidian\Test-Vault
 or on Linux:
 
 ```text
-/home/steve/Obsidian/Test-Vault
+/home/user/Obsidian/Test-Vault
 ```
 
 ---
 
-## 8. Test the Connection
+## 8. Copy the contents of Vault-Content into your Obsidian vault root.
+
+Ghostwriter does not create governance structure automatically.
+
+The vault scaffold is intentional and forms part of the collaboration model.
+
+## 9. Test the Connection
 
 Ask Sapphire to check Ghostwriter’s vault status.
 

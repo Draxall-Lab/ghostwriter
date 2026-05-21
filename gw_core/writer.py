@@ -164,6 +164,78 @@ def append_to_note(
 
     return target
 
+def insert_into_note(
+    vault_root: Path,
+    policy: WritePolicy,
+    note_path: str,
+    content: str,
+    anchor: str,
+    position: str = "after",
+    block_type: str = "any",
+    frontmatter=None,
+) -> Path:
+    from .block_insert import insert_block_at_anchor
+    from .meta import read_meta_ops
+
+    if not note_path or not note_path.strip():
+        raise ValueError("note_path is required")
+
+    if not content or not content.strip():
+        raise ValueError("content is required")
+
+    if not anchor or not anchor.strip():
+        raise ValueError("anchor is required")
+
+    if position not in {"before", "after"}:
+        raise ValueError("position must be one of: before, after")
+
+    note_path = note_path.strip()
+    content = content.strip()
+    anchor = anchor.strip()
+
+    target = resolve_existing_vault_note_path(vault_root, note_path)
+
+    if not can_perform_note_action(
+        vault_root=vault_root,
+        persona=policy.persona_name,
+        note_path=note_path,
+        action="edit",
+    ):
+        raise PermissionError("Blocked, ask user for permission")
+
+    if not target.exists():
+        raise FileNotFoundError(f"Note not found: {note_path}")
+
+    meta_ops = read_meta_ops(vault_root)
+
+    existing_text = target.read_text(encoding="utf-8")
+
+    existing_text = preprocess_note_metadata_update(
+        existing_text=existing_text,
+        meta_ops=meta_ops,
+        persona_name=policy.persona_name,
+        frontmatter=frontmatter,
+    )
+
+    insert_text = content.strip()
+
+    updated = insert_block_at_anchor(
+        note_text=existing_text,
+        anchor=anchor,
+        insert_text=insert_text,
+        position=position,
+        block_type=block_type,
+    )
+
+    if updated is None:
+        raise RuntimeError("Failed to insert content block")
+
+    updated_text, _match = updated
+
+    target.write_text(updated_text, encoding="utf-8")
+
+    return target
+
 def comment_on_note(
     vault_root: Path,
     policy: WritePolicy,
@@ -174,7 +246,6 @@ def comment_on_note(
     block_type: str = "any",
     frontmatter=None,
 ) -> Path:
-    from .write_policy import resolve_owned_note_path
     from .commenter import insert_comment_block
     from .meta import read_meta_ops
 
@@ -204,30 +275,34 @@ def comment_on_note(
     existing_text = target.read_text(encoding="utf-8")
 
     existing_text = preprocess_note_metadata_update(
-    existing_text=existing_text,
-    meta_ops=meta_ops,
-    persona_name=policy.persona_name,
-    frontmatter=frontmatter,
-)
+        existing_text=existing_text,
+        meta_ops=meta_ops,
+        persona_name=policy.persona_name,
+        frontmatter=frontmatter,
+    )
+
+    quoted_comment = "\n".join(
+        f"> {line}" if line.strip() else ">"
+        for line in comment.strip().splitlines()
+    )
 
     comment_text = preprocess_contribution(
-    content=f"*{comment.strip()}*",
-    meta_ops=meta_ops,
-    persona_name=policy.persona_name,
-    contribution_type="Comment",
-).strip()
+        content=quoted_comment,
+        meta_ops=meta_ops,
+        persona_name=policy.persona_name,
+        contribution_type="Comment",
+    ).strip()
 
     updated = insert_comment_block(
-    note_text=existing_text,
-    anchor=anchor,
-    comment_block=comment_text,
-    position=position,
-    block_type=block_type,
-)
+        note_text=existing_text,
+        anchor=anchor,
+        comment_block=comment_text,
+        position=position,
+        block_type=block_type,
+    )
 
     if updated is None:
-      raise RuntimeError("Failed to insert comment block")
-
+        raise RuntimeError("Failed to insert comment block")
     updated_text, _match = updated
 
     target.write_text(updated_text, encoding="utf-8")
@@ -421,3 +496,4 @@ def write_note(
     target.write_text(final_content, encoding="utf-8")
 
     return target
+

@@ -2,6 +2,56 @@
 
 ---
 
+## v0.6.0 - Fluid Additive Editing & Layered Collaboration
+
+### Release Type
+Architecture / Collaboration / Inline Editing Expansion
+
+- Fluid Additive Editing
+- Inline Block Insertion
+- Governed Frontmatter Mutation
+- Hybrid Structural/Semantic Anchoring
+- Collaborative Cognition Layer Expansion
+- Environmental Behaviour Refinement
+
+---
+
+## Highlights
+
+Ghostwriter v0.6 introduces fluid additive editing inside governed notes.
+
+This release transitions Ghostwriter from append/comment-only collaboration into lightweight inline collaborative mutation while preserving operational restraint, provenance clarity, and filesystem transparency.
+
+The editing model remains intentionally additive.
+
+Ghostwriter now supports contextual inline expansion without introducing unrestricted rewriting or destructive mutation.
+
+v0.6 also further validates an important architectural observation:
+
+> continuity architecture appears more important than complexity architecture.
+
+Collaborator behaviour increasingly reflects:
+- environmental structure
+- governance semantics
+- authored continuity
+- attentional persistence
+- vault topology
+
+rather than prompt engineering alone.
+
+---
+
+## New Features
+
+### Fluid Additive Inline Editing
+Added governed inline insertion support through:
+
+```text
+ghostwriter_insert_into_note
+```
+
+---
+
 ## v0.5.0 - Portable Governance & Semantic Collaboration
 
 ### Release Type

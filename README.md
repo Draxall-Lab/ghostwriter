@@ -47,7 +47,37 @@ The guiding principle is:
 
 ---
 
-# Current Capabilities (v0.5)
+# Current Capabilities (v0.6)
+
+## Fluid Additive Editing (v0.6)
+
+Ghostwriter v0.6 introduces fluid additive inline editing for governed notes.
+
+New capabilities include:
+
+- block-level inline insertion
+- heading and semantic anchor targeting
+- additive prose expansion
+- direct frontmatter mutation
+- clean inline edits without comment formatting
+- contextual insertion before or after matched blocks
+
+Edits remain additive and non-destructive.
+
+Ghostwriter still does not perform:
+
+- silent overwrites
+- destructive rewriting
+- arbitrary sentence mutation
+- unrestricted vault editing
+
+The v0.6 editing model prioritises:
+
+- reviewability
+- provenance-aware collaboration
+- semantic continuity
+- lightweight operational cognition
+- constrained autonomy
 
 ## Governed Metadata Lifecycle
 
@@ -147,7 +177,7 @@ Comment operations are additive and contextual.
 
 Ghostwriter does not currently perform:
 
-- inline sentence rewriting
+- unrestricted inline mutation
 - silent mutation
 - destructive editing
 - arbitrary vault editing
