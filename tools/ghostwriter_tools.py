@@ -16,8 +16,11 @@ from gw_core.writer import (
     ghostwriter_move_file,
     write_note,
     comment_on_note,
+    insert_into_note
 )
-from gw_core.write_policy import resolve_write_policy, load_meta_ops
+from gw_core.write_policy import resolve_write_policy
+
+from gw_core.frontmatter import insert_frontmatter
 
 import logging
 
@@ -39,6 +42,8 @@ AVAILABLE_FUNCTIONS = [
     "ghostwriter_move_file",
     "ghostwriter_write_note",
     "ghostwriter_comment_on_note",
+    "ghostwriter_insert_into_note",
+    "ghostwriter_insert_frontmatter"
 ]
 
 TOOLS = [
@@ -346,6 +351,92 @@ TOOLS = [
             "required": ["persona_name", "note_path", "anchor", "comment"]
         }
     }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_insert_into_note",
+        "description": "Insert additive body content into an existing governed note at a heading, paragraph, or matched block. This performs a clean inline body edit without comment formatting.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "The active persona name."
+                },
+                "note_path": {
+                    "type": "string",
+                    "description": "Vault-relative path to the note."
+                },
+                "content": {
+                    "type": "string",
+                    "description": "The body content to insert. Do not include YAML frontmatter here."
+                },
+                "anchor": {
+                    "type": "string",
+                    "description": "Text used to identify the target block."
+                },
+                "position": {
+                    "type": "string",
+                    "enum": ["before", "after"],
+                    "default": "after"
+                },
+                "block_type": {
+                    "type": "string",
+                    "enum": ["paragraph", "heading", "list_item", "marker", "any"],
+                    "default": "any"
+                },
+                "frontmatter": {
+                    "type": "object",
+                    "description": "Optional metadata suggestions for the existing note."
+                }
+            },
+            "required": ["persona_name", "note_path", "anchor", "content"]
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_insert_frontmatter",
+        "description": (
+            "Insert or merge governed frontmatter fields into an existing note "
+            "without modifying the body content. "
+            "Protected governance fields and unknown fields are ignored."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "The active persona name."
+                },
+                "note_path": {
+                    "type": "string",
+                    "description": (
+                        "Path to the note, relative to your workspace "
+                        "or explicitly under _collab/{Persona Name}/."
+                    )
+                },
+                "frontmatter": {
+                    "type": "object",
+                    "description": (
+                        "Frontmatter fields to merge into the existing note. "
+                        "Only fields already present in the note/template and "
+                        "not governance-protected may be merged. "
+                        "Unknown fields and protected governance fields are ignored."
+                    )
+                }
+            },
+            "required": [
+                "persona_name",
+                "note_path",
+                "frontmatter"
+            ]
+        }
+    }
 }
 ]
 
@@ -606,6 +697,93 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             )
 
             return _json_result(_ok("comment_added", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_insert_into_note":
+        try:
+            persona_name = arguments.get("persona_name", "")
+            note_path = arguments.get("note_path", "")
+            anchor = arguments.get("anchor", "")
+            content = arguments.get("content", "")
+            position = arguments.get("position", "after")
+            block_type = arguments.get("block_type", "any")
+            frontmatter = arguments.get("frontmatter")
+
+            if frontmatter is None:
+                reserved_keys = {
+                    "persona_name",
+                    "note_path",
+                    "anchor",
+                    "content",
+                    "position",
+                    "block_type",
+                }
+
+                frontmatter = {
+                    key: value
+                    for key, value in arguments.items()
+                    if key not in reserved_keys
+                } or None
+
+            if not persona_name:
+                raise ValueError("persona_name is required")
+
+            vault_root = get_vault_path(settings)
+            policy = resolve_write_policy(vault_root, persona_name)
+
+            result = insert_into_note(
+                vault_root=vault_root,
+                policy=policy,
+                note_path=note_path,
+                anchor=anchor,
+                content=content,
+                position=position,
+                block_type=block_type,
+                frontmatter=frontmatter,
+            )
+
+            return _json_result(_ok("content_inserted", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_insert_frontmatter":
+        try:
+            persona_name = arguments.get("persona_name", "")
+            note_path = arguments.get("note_path", "")
+            frontmatter = arguments.get("frontmatter")
+
+            if not persona_name:
+                raise ValueError("persona_name is required")
+
+            if not frontmatter:
+                reserved_keys = {
+                    "persona_name",
+                    "note_path",
+                }
+
+                frontmatter = {
+                    key: value
+                    for key, value in arguments.items()
+                    if key not in reserved_keys
+                } or None
+
+            if not frontmatter:
+                raise ValueError("frontmatter is required")
+
+            vault_root = get_vault_path(settings)
+            policy = resolve_write_policy(vault_root, persona_name)
+
+            result = insert_frontmatter(
+                vault_root=vault_root,
+                policy=policy,
+                note_path=note_path,
+                frontmatter=frontmatter,
+            )
+
+            return _json_result(_ok("frontmatter_inserted", result)), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False
