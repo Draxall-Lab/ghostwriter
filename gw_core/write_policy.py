@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
+from .activity_stream import normalise_stream_path
+
 
 @dataclass
 class WritePolicy:
@@ -177,3 +179,116 @@ def resolve_existing_vault_note_path(
         raise FileNotFoundError(f"Note not found: {requested}")
 
     return target
+
+def resolve_existing_note_path(vault_root: Path, note_path: str) -> Path:
+    """
+    Resolve an existing Markdown note safely.
+
+    Rules:
+    - Vault-relative paths are accepted directly.
+    - Bare filenames are searched across the vault.
+    - Bare filename search must resolve to exactly one match.
+    - Missing notes are never created here.
+    - Ambiguous filenames raise with candidate paths.
+    """
+    if not note_path or not note_path.strip():
+        raise ValueError("note_path is required")
+
+    raw = note_path.strip().replace("\\", "/").lstrip("/")
+
+    if not raw.endswith(".md"):
+        raw += ".md"
+
+    if ".." in Path(raw).parts:
+        raise ValueError("note_path must not contain '..'")
+
+    # Vault-relative path
+    if "/" in raw:
+        target = (vault_root / raw).resolve()
+
+        try:
+            target.relative_to(vault_root.resolve())
+        except ValueError:
+            raise ValueError("note_path must stay inside the vault")
+
+        if not target.exists():
+            raise FileNotFoundError(f"Note not found: {raw}")
+
+        if not target.is_file():
+            raise ValueError(f"Path is not a file: {raw}")
+
+        return target
+
+    # Bare filename lookup
+    matches = [
+        path
+        for path in vault_root.rglob(raw)
+        if path.is_file() and path.suffix == ".md"
+    ]
+
+    if len(matches) == 1:
+        return matches[0]
+
+    if not matches:
+        raise FileNotFoundError(
+            f"Note not found by filename: {raw}. Use a vault-relative path."
+        )
+
+    options = "\n".join(
+        f"- {path.relative_to(vault_root).as_posix()}"
+        for path in matches[:10]
+    )
+
+    raise ValueError(
+        f"Ambiguous note filename: {raw}\n"
+        f"Use a vault-relative path such as:\n{options}"
+    )
+
+def resolve_mutation_target_path(vault_root: Path, note_path: str) -> Path:
+    raw = normalise_stream_path(note_path)
+
+    if not raw:
+        raise ValueError("note_path is required")
+
+    # 1. Exact vault-relative path
+    exact = vault_root / raw
+    if exact.exists() and exact.is_file() and exact.suffix == ".md":
+        return exact
+
+    # 2. Add .md if omitted and try exact path again
+    if not raw.endswith(".md"):
+        exact_md = vault_root / f"{raw}.md"
+        if exact_md.exists() and exact_md.is_file():
+            return exact_md
+
+    wanted_filename = raw if raw.endswith(".md") else f"{raw}.md"
+    wanted_title = raw.removesuffix(".md").lower()
+
+    matches: list[Path] = []
+
+    for path in vault_root.rglob("*.md"):
+        rel = path.relative_to(vault_root).as_posix()
+
+        # Optional: skip system/internal notes if you want
+        if rel.startswith("_ghostwriter/"):
+            continue
+
+        filename_match = path.name.lower() == wanted_filename.lower()
+        title_match = path.stem.lower() == wanted_title
+
+        if filename_match or title_match:
+            matches.append(path)
+
+    if not matches:
+        raise FileNotFoundError(f"No existing note found for: {note_path}")
+
+    if len(matches) > 1:
+        options = "\n".join(
+            f"- {p.relative_to(vault_root).as_posix()}" for p in matches
+        )
+        raise ValueError(
+            f"Ambiguous note reference: {note_path}\n"
+            f"Matched multiple notes:\n{options}"
+        )
+
+    return matches[0]

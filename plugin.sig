@@ -1,8 +1,9 @@
 {
   "plugin": "ghostwriter-for-obsidian",
-  "version": "0.6",
+  "version": "0.6.5",
   "files": {
-    "Changelog.md": "sha256:61702d388e4242555b64e8d6171f08a0b020c19cd1e3df86f6550f18655a9407",
+    "Changelog.md": "sha256:e5755adb0ad5c02787ec7aed8bb3b0a18a1621c7b55c5f09fb90559fde82d123",
+    "gw_core/activity_stream.py": "sha256:9346d39aa64ef1bf67255a0aec6c9a964d4cacd6919191e686f126b7863e8fd6",
     "gw_core/block_insert.py": "sha256:52ec6bcab0c1fb45b31e84c904a468f44909cca0f0314a68befe32616ab15c40",
     "gw_core/commenter.py": "sha256:a3efc5b7d2d22e6361c38efb772c22004013b6387088b6318309856a7ba62b36",
     "gw_core/frontmatter.py": "sha256:ba39de0e2b75762a20a98a9ff0288980cb0c18a52bf8a932e15862ccdba11d98",
@@ -11,20 +12,21 @@
     "gw_core/path_utils.py": "sha256:b8f610a5552bef0cf34adb0c1b425ccc7a417a63f4e4311aa9eee9d1649de6b4",
     "gw_core/templates.py": "sha256:4494d83b3889a6d27fe5244fca2ff91aa7c2ce11473a2ca15efaab6f2208b08c",
     "gw_core/vault.py": "sha256:bab6c4c06f37e1fefc3a6c7ead8049ffa77e8f611813993c23264d2744d3c74b",
-    "gw_core/write_policy.py": "sha256:d0ac6efbb0d7b710cf6000df2b45cd5ecc57fbad2cfca64318dda1f627ba518b",
-    "gw_core/writer.py": "sha256:3ed35750df03121fee1099b7c6428ac172891718b512c41a851a1337f223ee4a",
+    "gw_core/write_policy.py": "sha256:cb987492c2c4b9cd86312646b4161de110991502210661b1fb87a57471b5a892",
+    "gw_core/writer.py": "sha256:435bce3f0e863025246a4b3b1478bbf23091598a0fcf10fce094584a67c70aa1",
     "Install Guide.md": "sha256:702e047ecbe81c4fdce034bcf07cbd682a731a39ff7568c6832a15b1d5060fa9",
-    "plugin.json": "sha256:15dd72424083c53aa06c03041e12e0bc2105f5d8c6afab97f3af82c6a0ee285c",
-    "README.md": "sha256:a340bc94e2d0d8d661706cb45977ca71a041be0eb0e45585a75e2e1d965d22d1",
+    "plugin.json": "sha256:eb5a0423f8fea4848923ff9ca4d9e5605470dcf74b7cc0baf4cec5408f557e4e",
+    "README.md": "sha256:07102f3908f5064cf98d8a2f620a630df134e35debdfc89ad843756386bd5a46",
+    "routes/check_stream.py": "sha256:71b25b83cd8d861663cc1590152c9b6155e8b643a827f85e2517a589bd8c2dbf",
     "routes/list.py": "sha256:9dd142a632fcd84170982b58cfdeb0b16ea00f2b7d7232320cfcc4ea40968894",
     "routes/read.py": "sha256:e443f964f87ea9c7bbe6830769c8c13411872dce7be41f7ed6f4c51f862b0d58",
     "routes/status.py": "sha256:38fa0e70d4d7e1b2d32e95f811437db50b45229b7096c16fdd3a29fa5dc95578",
     "routes/write.py": "sha256:0b46d239028c691673b8c685cc8575c0fe9374c4bd2a5f7e6142c4b250ffd438",
-    "tools/ghostwriter_tools.py": "sha256:ba822d01f11c2988f58a12bdefde1944ba326ae2e6b269965aae5fe3b8459558",
+    "tools/ghostwriter_tools.py": "sha256:a778bcc2e28622b10150af15f0c9d9985e2265d99397662edbd247c8c3274a34",
     "Vault-Content/_collab/Welcome.md": "sha256:406b00f25c7406ae3e79682f843ed904e1ed955918edb40dcde85a3cd572f270",
     "Vault-Content/_meta/guide-for-ai.md": "sha256:46e6a4bc94d468252eb19912f87e8a6036bdf25239d8ba267229e4af069b44f4",
     "Vault-Content/_meta/meta-ops.md": "sha256:66e679377c31e012c23c0155a61a3250753152e5635d272271e365bec976979e",
     "Vault-Content/Templates/GW-base-note.md": "sha256:cb02d7c3e20902b802a468feb481dee0720b15b72c7c9d736179f20d38fa36e1"
   },
-  "signature": "KT2GAMMttJmGOJoSibcmN1mQC9Fqua2hFUYll/THFTG7OCbzsMPjYxYB/e1btsX6d9N4XfP5yF4LhzJpQwsVAg=="
+  "signature": "bMrf0o+4BE15cn4TKnomd6xvf17D09FpPWFTKI/gj1D9lF/iHGQBFWzQ1cSN99qRh5WAQnhTAxZwk3zsjmrLBA=="
 }

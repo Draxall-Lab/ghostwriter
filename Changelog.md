@@ -2,6 +2,58 @@
 
 ---
 
+## v0.6.5 - Activity Stream & Existing-Note Cognition
+
+### Release Type
+Architecture / Continuity / Environmental Cognition
+
+- Activity Stream System
+- Existing-Note Resolution Stabilisation
+- Canonical Mutation Targeting
+- Semantic Link Extraction
+- Lightweight Attentional Continuity
+- Environmental Grounding Refinement
+
+---
+
+## Highlights
+
+Ghostwriter v0.6.5 introduces a lightweight Activity Stream system and significantly refines existing-note operational cognition.
+
+This release stabilises the distinction between:
+
+- note creation
+- existing-note mutation
+- canonical note identity
+- environmental note resolution
+
+Collaborators now increasingly ground against vault reality before mutation rather than relying primarily on conversational recency.
+
+The new Activity Stream acts as a lightweight semantic continuity layer rather than traditional telemetry.
+
+Observed collaborator behaviour increasingly reflects:
+
+- environmental grounding
+- canonical note targeting
+- attentional continuity
+- semantic adjacency awareness
+- vault-native object persistence
+
+rather than transient conversational focus alone.
+
+---
+
+## New Features
+
+### Activity Stream System
+Added lightweight shared activity stream support through:
+
+```text
+_ghostwriter/activity-stream.md
+```
+
+---
+
 ## v0.6.0 - Fluid Additive Editing & Layered Collaboration
 
 ### Release Type

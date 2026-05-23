@@ -18,7 +18,10 @@ from gw_core.writer import (
     comment_on_note,
     insert_into_note
 )
-from gw_core.write_policy import resolve_write_policy
+from gw_core.write_policy import (
+    resolve_write_policy,
+    resolve_mutation_target_path
+)
 
 from gw_core.frontmatter import insert_frontmatter
 
@@ -43,7 +46,8 @@ AVAILABLE_FUNCTIONS = [
     "ghostwriter_write_note",
     "ghostwriter_comment_on_note",
     "ghostwriter_insert_into_note",
-    "ghostwriter_insert_frontmatter"
+    "ghostwriter_insert_frontmatter",
+    "ghostwriter_check_stream"
 ]
 
 TOOLS = [
@@ -83,16 +87,21 @@ TOOLS = [
         "is_local": True,
         "function": {
             "name": "ghostwriter_read_note",
-            "description": "Read a specific Markdown note from the configured Obsidian vault using its vault-relative path.",
+            "description": "Vault-relative path to an existing Markdown note, for example 'Projects/Example.md'. "
+                           "Bare filenames are allowed only if they resolve to exactly one note.",
             "parameters": {
                 "type": "object",
                 "properties": {
+                    "persona_name": {
+                        "type": "string",
+                        "description": "The active persona name. Used for Activity Stream logging."
+                    },
                     "path": {
                         "type": "string",
                         "description": "Vault-relative path to the Markdown note, for example 'Projects/Example.md'."
                     }
                 },
-                "required": ["path"]
+                "required": ["persona_name","path"]
             }
         }
     },
@@ -159,6 +168,8 @@ TOOLS = [
             "This is append-only and does not edit, delete, or replace existing content. "
             "Use the optional frontmatter parameter for metadata suggestions. "
             "Do not include YAML frontmatter inside content."
+            "Vault-relative path to an existing Markdown note. "
+            "Bare filenames are allowed only if they resolve to exactly one note."
         ),
         "parameters": {
             "type": "object",
@@ -195,6 +206,7 @@ TOOLS = [
 },
     {
     "type": "function",
+    "is_local": True,
     "function": {
         "name": "ghostwriter_create_folder",
         "description": "Create a folder inside your active AI workspace only.",
@@ -216,6 +228,7 @@ TOOLS = [
 },
 {
     "type": "function",
+    "is_local": True,
     "function": {
         "name": "ghostwriter_move_file",
         "description": "Move a file inside your active AI workspace only.",
@@ -245,6 +258,7 @@ TOOLS = [
 },
 {
     "type": "function",
+    "is_local": True,
     "function": {
         "name": "ghostwriter_write_note",
         "description": (
@@ -304,6 +318,8 @@ TOOLS = [
             "Does not edit existing text. "
             "Use the optional frontmatter parameter for metadata suggestions. "
             "Do not include YAML frontmatter inside comment."
+            "Vault-relative path to an existing Markdown note. "
+            "Bare filenames are allowed only if they resolve to exactly one note."
         ),
         "parameters": {
             "type": "object",
@@ -357,7 +373,12 @@ TOOLS = [
     "is_local": True,
     "function": {
         "name": "ghostwriter_insert_into_note",
-        "description": "Insert additive body content into an existing governed note at a heading, paragraph, or matched block. This performs a clean inline body edit without comment formatting.",
+        "description": (
+            "Insert additive body content into an existing governed note at a heading, paragraph, or matched block. "
+            "This performs a clean inline body edit without comment formatting. "
+            "Vault-relative path to an existing Markdown note. "
+            "Bare filenames are allowed only if they resolve to exactly one note."
+),
         "parameters": {
             "type": "object",
             "properties": {
@@ -405,6 +426,8 @@ TOOLS = [
             "Insert or merge governed frontmatter fields into an existing note "
             "without modifying the body content. "
             "Protected governance fields and unknown fields are ignored."
+            "Vault-relative path to an existing Markdown note. "
+            "Bare filenames are allowed only if they resolve to exactly one note."
         ),
         "parameters": {
             "type": "object",
@@ -437,6 +460,29 @@ TOOLS = [
             ]
         }
     }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_check_stream",
+        "description": "Check recent Ghostwriter Activity Stream entries. Optionally filter by persona name.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "Optional persona name to filter by. Leave blank for shared recent activity."
+                },
+                "max_entries": {
+                    "type": "integer",
+                    "description": "Maximum number of entries to return.",
+                    "default": 10
+                }
+            },
+            "required": []
+        }
+    }
 }
 ]
 
@@ -453,6 +499,13 @@ def _ok(action, path):
         "policy_source": "_meta/meta-ops.md",
     }
 
+def _ok_data(action, data):
+    return {
+        "ok": True,
+        "action": action,
+        "data": data,
+        "policy_source": "_meta/meta-ops.md",
+    }
 
 def _error(exc):
     return {
@@ -473,8 +526,41 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
         return _json_result(list_markdown_notes(settings, include_meta=include_meta)), True
 
     if function_name == "ghostwriter_read_note":
-        note_path = arguments.get("path", "")
-        return _json_result(read_note(settings, note_path)), True
+        try:
+            from gw_core.activity_stream import record_activity
+            
+
+            persona_name = arguments.get("persona_name", "")
+            note_path = arguments.get("path", "")
+
+            if not persona_name:
+                raise ValueError("persona_name is required")
+
+            vault_root = get_vault_path(settings)
+
+            target = resolve_mutation_target_path(
+                vault_root=vault_root,
+                note_path=note_path,
+            )
+
+            vault_relative_path = target.relative_to(vault_root).as_posix()
+
+            result = read_note(settings, vault_relative_path)
+
+            if isinstance(result, dict) and result.get("ok") is False:
+                return _json_result(result), False
+
+            record_activity(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                activity_type="read",
+                note_path=vault_relative_path,
+            )
+
+            return _json_result(result), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
 
     if function_name == "ghostwriter_load_meta_context":
         return _json_result(load_meta_context(settings)), True
@@ -522,6 +608,8 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
         
     if function_name == "ghostwriter_append_to_note":
         try:
+            from gw_core.activity_stream import record_activity
+
             persona_name = arguments.get("persona_name", "")
             note_path = arguments.get("note_path", "")
             content = arguments.get("content", "")
@@ -552,15 +640,32 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             vault_root = get_vault_path(settings)
             policy = resolve_write_policy(vault_root, persona_name)
 
-            appended_path = append_to_note(
+            target = resolve_mutation_target_path(
+                vault_root=vault_root,
+                note_path=note_path,
+            )
+
+            vault_relative_path = target.relative_to(vault_root).as_posix()
+
+            result = append_to_note(
                 vault_root=vault_root,
                 policy=policy,
-                note_path=note_path,
+                note_path=vault_relative_path,
                 content=content,
                 frontmatter=frontmatter,
             )
 
-            return _json_result(_ok("appended_to_note", appended_path)), True
+            if isinstance(result, dict) and result.get("ok") is False:
+                return _json_result(result), False
+
+            record_activity(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                activity_type="append",
+                note_path=vault_relative_path,
+            )
+ 
+            return _json_result(_ok("appended_to_note", result)), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False
@@ -615,7 +720,10 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             return _json_result(_error(exc)), False
         
     if function_name == "ghostwriter_write_note":
+
         try:
+            from gw_core.activity_stream import record_activity
+            
             persona_name = arguments.get("persona_name", "")
             note_path = arguments.get("note_path", "")
             content = arguments.get("content", "")
@@ -640,7 +748,7 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             vault_root = get_vault_path(settings)
             policy = resolve_write_policy(vault_root, persona_name)
 
-            note = write_note(
+            result =  write_note(
                 vault_root=vault_root,
                 policy=policy,
                 note_path=note_path,
@@ -648,13 +756,21 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
                 frontmatter=frontmatter,
             )
 
-            return _json_result(_ok("created_note", note)), True
+            record_activity(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                activity_type="write",
+                note_path=result.relative_to(vault_root).as_posix(),
+            )
+
+            return _json_result(_ok("note_written", result)), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False
         
     if function_name == "ghostwriter_comment_on_note":
         try:
+            from gw_core.activity_stream import record_activity
             persona_name = arguments.get("persona_name", "")
             note_path = arguments.get("note_path", "")
             anchor = arguments.get("anchor", "")
@@ -685,10 +801,17 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             vault_root = get_vault_path(settings)
             policy = resolve_write_policy(vault_root, persona_name)
 
+            target = resolve_mutation_target_path(
+                vault_root=vault_root,
+                note_path=note_path,
+            )
+
+            vault_relative_path = target.relative_to(vault_root).as_posix()
+
             result = comment_on_note(
                 vault_root=vault_root,
                 policy=policy,
-                note_path=note_path,
+                note_path=vault_relative_path,
                 anchor=anchor,
                 comment=comment,
                 position=position,
@@ -696,6 +819,16 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
                 frontmatter=frontmatter,
             )
 
+            if isinstance(result, dict) and result.get("ok") is False:
+                return _json_result(result), False
+
+            record_activity(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                activity_type="comment",
+                note_path=vault_relative_path,
+            )
+ 
             return _json_result(_ok("comment_added", result)), True
 
         except Exception as exc:
@@ -703,6 +836,8 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
         
     if function_name == "ghostwriter_insert_into_note":
         try:
+            from gw_core.activity_stream import record_activity
+
             persona_name = arguments.get("persona_name", "")
             note_path = arguments.get("note_path", "")
             anchor = arguments.get("anchor", "")
@@ -733,15 +868,32 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             vault_root = get_vault_path(settings)
             policy = resolve_write_policy(vault_root, persona_name)
 
+            target = resolve_mutation_target_path(
+                vault_root=vault_root,
+                note_path=note_path,
+            )
+
+            vault_relative_path = target.relative_to(vault_root).as_posix()
+
             result = insert_into_note(
                 vault_root=vault_root,
                 policy=policy,
-                note_path=note_path,
+                note_path=vault_relative_path,
                 anchor=anchor,
                 content=content,
                 position=position,
                 block_type=block_type,
                 frontmatter=frontmatter,
+            )
+
+            if isinstance(result, dict) and result.get("ok") is False:
+                return _json_result(result), False
+
+            record_activity(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                activity_type="insert",
+                note_path=vault_relative_path,
             )
 
             return _json_result(_ok("content_inserted", result)), True
@@ -751,6 +903,8 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
         
     if function_name == "ghostwriter_insert_frontmatter":
         try:
+            from gw_core.activity_stream import record_activity
+
             persona_name = arguments.get("persona_name", "")
             note_path = arguments.get("note_path", "")
             frontmatter = arguments.get("frontmatter")
@@ -776,14 +930,65 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             vault_root = get_vault_path(settings)
             policy = resolve_write_policy(vault_root, persona_name)
 
+            target = resolve_mutation_target_path(
+                vault_root=vault_root,
+                note_path=note_path,
+            )
+
+            vault_relative_path = target.relative_to(vault_root).as_posix()
+
             result = insert_frontmatter(
                 vault_root=vault_root,
                 policy=policy,
-                note_path=note_path,
+                note_path=vault_relative_path,
                 frontmatter=frontmatter,
             )
 
+            if isinstance(result, dict) and result.get("ok") is False:
+                return _json_result(result), False
+
+            record_activity(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                activity_type="frontmatter",
+                note_path=vault_relative_path,
+            )
+
             return _json_result(_ok("frontmatter_inserted", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_check_stream":
+        try:
+            from gw_core.activity_stream import check_stream
+
+            persona_name = arguments.get("persona_name", "")
+            max_entries = arguments.get("max_entries", 10)
+
+            try:
+                max_entries = int(max_entries)
+            except (TypeError, ValueError):
+                max_entries = 10
+
+            if max_entries < 1:
+                max_entries = 10
+
+            vault_root = get_vault_path(settings)
+
+            entries = check_stream(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                max_entries=max_entries,
+            )
+
+            result = {
+                "persona_filter": persona_name or "all",
+                "count": len(entries),
+                "entries": entries,
+            }
+
+            return _json_result(_ok_data("activity_stream_checked", result)), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False

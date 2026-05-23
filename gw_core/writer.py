@@ -20,8 +20,6 @@ from .governance import (
     sanitise_note_title,
     preprocess_note_update,
     preprocess_contribution,
-    apply_ai_frontmatter_updates_to_existing_note,
-    apply_mutation_frontmatter_updates,
     preprocess_note_metadata_update,
     preprocess_contribution,
     can_perform_note_action,
