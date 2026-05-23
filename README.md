@@ -47,7 +47,47 @@ The guiding principle is:
 
 ---
 
-# Current Capabilities (v0.6)
+# Current Capabilities (v0.6.5)
+
+## Activity Stream & Attentional Continuity (v0.6.5)
+
+Ghostwriter v0.6.5 introduces a lightweight Activity Stream system for shared collaborative continuity.
+
+The stream is stored at:
+
+```text
+_ghostwriter/activity-stream.md
+```
+
+Activity entries are human-readable, AI-readable, and structured enough to support future radar and resurfacing systems.
+
+Currently logged activities include:
+
+- read
+- write
+- append
+- comment
+- insert
+- frontmatter
+
+The stream supports:
+
+- automatic bootstrapping of _ghostwriter/
+- newest-first activity entries
+- canonical vault-relative paths
+- related-link extraction from frontmatter and body wikilinks
+- lightweight semantic adjacency tracking
+- pruning and maintenance hooks
+- persona filtering through ghostwriter_check_stream
+
+The Activity Stream is not intended as heavy telemetry. It acts as a shared attentional trace layer, helping collaborators understand where recent activity has happened and which notes were conceptually nearby.
+
+
+Architecture update:
+
+```markdown
+gw_core/
+  activity_stream.py
 
 ## Fluid Additive Editing (v0.6)
 
@@ -396,10 +436,20 @@ Load meta-context
 
 # Current Status
 
-## v0.5
+## v0.6.5
 Completed
 
-Validated v0.5 capabilities:
+Validated v0.6.5 capabilities:
+
+- auto-bootstrapping Activity Stream
+- canonical existing-note resolution
+- mutation-safe note targeting
+- duplicate-note ambiguity handling
+- activity logging on successful operations only
+- ghostwriter_check_stream
+- related-link extraction from frontmatter and body wikilinks
+- vault-root display paths in stream entries
+- lightweight stream maintenance hook
 
 - standardized governance parsing
 - template-path decoupling
