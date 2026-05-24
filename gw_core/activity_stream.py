@@ -318,6 +318,25 @@ def display_stream_path(path: str | Path) -> str:
     raw = normalise_stream_path(path)
     return f"/{raw}" if raw else ""
 
+def is_valid_stream_related(item: str | None) -> bool:
+    if item is None:
+        return False
+
+    value = str(item).strip()
+
+    if not value:
+        return False
+
+    normalised = normalise_stream_path(value).strip().lower()
+
+    return normalised not in {
+        "null",
+        "/null",
+        "none",
+        "/none",
+    }
+
+
 def format_stream_entry(
     persona_name: str,
     activity_type: str,
@@ -331,19 +350,30 @@ def format_stream_entry(
         f"Date: {now}",
         f"Persona: {persona_name}",
         f"Type: {activity_type}",
-        f"Path: `{display_stream_path(note_path)}`",
+        f"Path: [[{display_stream_path(note_path).removesuffix('.md')}]]",
     ]
 
-    clean_related = dedupe_preserve_order(
-        normalise_stream_path(item)
-        for item in related
-        if item and normalise_stream_path(item) != note_path
-    )
+    clean_related = []
+
+    for item in related:
+        if not is_valid_stream_related(item):
+            continue
+
+        normalised = normalise_stream_path(item)
+
+        if normalised == note_path:
+            continue
+
+        clean_related.append(normalised)
+
+    clean_related = dedupe_preserve_order(clean_related)
 
     if clean_related:
         lines.append("Related:")
         for item in clean_related:
-            lines.append(f"- `{display_stream_path(item)}`")
+            lines.append(
+                f"- [[{display_stream_path(item).removesuffix('.md')}]]"
+            )
 
     lines.append(ENTRY_END)
 

@@ -1,9 +1,9 @@
 {
   "plugin": "ghostwriter-for-obsidian",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "files": {
     "Changelog.md": "sha256:e5755adb0ad5c02787ec7aed8bb3b0a18a1621c7b55c5f09fb90559fde82d123",
-    "gw_core/activity_stream.py": "sha256:9346d39aa64ef1bf67255a0aec6c9a964d4cacd6919191e686f126b7863e8fd6",
+    "gw_core/activity_stream.py": "sha256:f9d9bf3585e4f3b7e94e24adb1205c87aefa0be2f54637770fb4d0dabde8dc12",
     "gw_core/block_insert.py": "sha256:52ec6bcab0c1fb45b31e84c904a468f44909cca0f0314a68befe32616ab15c40",
     "gw_core/commenter.py": "sha256:a3efc5b7d2d22e6361c38efb772c22004013b6387088b6318309856a7ba62b36",
     "gw_core/frontmatter.py": "sha256:ba39de0e2b75762a20a98a9ff0288980cb0c18a52bf8a932e15862ccdba11d98",
@@ -15,7 +15,7 @@
     "gw_core/write_policy.py": "sha256:cb987492c2c4b9cd86312646b4161de110991502210661b1fb87a57471b5a892",
     "gw_core/writer.py": "sha256:435bce3f0e863025246a4b3b1478bbf23091598a0fcf10fce094584a67c70aa1",
     "Install Guide.md": "sha256:702e047ecbe81c4fdce034bcf07cbd682a731a39ff7568c6832a15b1d5060fa9",
-    "plugin.json": "sha256:eb5a0423f8fea4848923ff9ca4d9e5605470dcf74b7cc0baf4cec5408f557e4e",
+    "plugin.json": "sha256:5c44a794089f2c009ce36e7f57e8aa4dc0a4632c2dfd333fd51586e4bcbde89f",
     "README.md": "sha256:07102f3908f5064cf98d8a2f620a630df134e35debdfc89ad843756386bd5a46",
     "routes/check_stream.py": "sha256:71b25b83cd8d861663cc1590152c9b6155e8b643a827f85e2517a589bd8c2dbf",
     "routes/list.py": "sha256:9dd142a632fcd84170982b58cfdeb0b16ea00f2b7d7232320cfcc4ea40968894",
@@ -25,8 +25,8 @@
     "tools/ghostwriter_tools.py": "sha256:a778bcc2e28622b10150af15f0c9d9985e2265d99397662edbd247c8c3274a34",
     "Vault-Content/_collab/Welcome.md": "sha256:406b00f25c7406ae3e79682f843ed904e1ed955918edb40dcde85a3cd572f270",
     "Vault-Content/_meta/guide-for-ai.md": "sha256:46e6a4bc94d468252eb19912f87e8a6036bdf25239d8ba267229e4af069b44f4",
-    "Vault-Content/_meta/meta-ops.md": "sha256:66e679377c31e012c23c0155a61a3250753152e5635d272271e365bec976979e",
+    "Vault-Content/_meta/meta-ops.md": "sha256:17266aff9d674ef991c988ea1f1e7fe0a3e8e750766571c4eeab16aa45af4c3e",
     "Vault-Content/Templates/GW-base-note.md": "sha256:cb02d7c3e20902b802a468feb481dee0720b15b72c7c9d736179f20d38fa36e1"
   },
-  "signature": "bMrf0o+4BE15cn4TKnomd6xvf17D09FpPWFTKI/gj1D9lF/iHGQBFWzQ1cSN99qRh5WAQnhTAxZwk3zsjmrLBA=="
+  "signature": "5curezDMZuKtMCTLYJCeKEKAgUQIbE1iyuwIU1XOeKmH+dnfDbiqoigOiekyvtk7Idf6lbrUrTcCuaLR6HnHBw=="
 }
