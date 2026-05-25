@@ -47,7 +47,9 @@ AVAILABLE_FUNCTIONS = [
     "ghostwriter_comment_on_note",
     "ghostwriter_insert_into_note",
     "ghostwriter_insert_frontmatter",
-    "ghostwriter_check_stream"
+    "ghostwriter_check_stream",
+    "ghostwriter_check_radar",
+    "ghostwriter_add_to_radar"
 ]
 
 TOOLS = [
@@ -481,6 +483,60 @@ TOOLS = [
                 }
             },
             "required": []
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_check_radar",
+        "description": "Check the collaborator Radar note. If Radar.md does not exist for the active collaborator, initialise it using the canonical Radar format.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "Optional collaborator persona name. Uses the active collaborator if omitted."
+                }
+            },
+            "required": []
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_add_to_radar",
+        "description": "Add or update a note entry in the collaborator Radar note. This places the note in attentional awareness without requiring immediate reading or action.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "Optional collaborator persona name. Uses the active collaborator if omitted."
+                },
+                "note_path": {
+                    "type": "string",
+                    "description": "The note to add to Radar. Prefer a canonical vault-relative path or Obsidian wikilink."
+                },
+                "type": {
+                    "type": "string",
+                    "description": "Where the signal currently sits. Use Active or Peripheral.",
+                    "enum": ["Active", "Peripheral"]
+                },
+                "pull": {
+                    "type": "string",
+                    "description": "Current attentional force, not objective importance.",
+                    "enum": ["faint", "weak", "medium", "strong"]
+                },
+                "why_it_is_here": {
+                    "type": "string",
+                    "description": "Brief reason this note belongs on Radar. If user-requested, preserve the user intent."
+                }
+            },
+            "required": ["note_path"]
         }
     }
 }
@@ -989,6 +1045,53 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             }
 
             return _json_result(_ok_data("activity_stream_checked", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_check_radar":
+        try:
+            from gw_core.radar import check_radar
+
+            persona_name = arguments.get("persona_name", "")
+
+            vault_root = get_vault_path(settings)
+
+            result = check_radar(
+                vault_root=vault_root,
+                persona_name=persona_name,
+            )
+
+            return _json_result(_ok_data("radar_checked", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_add_to_radar":
+        try:
+            from gw_core.radar import add_to_radar
+
+            persona_name = arguments.get("persona_name", "")
+            note_path = arguments.get("note_path", "")
+            signal_type = arguments.get("type", "Active")
+            pull = arguments.get("pull", "medium")
+            why_it_is_here = arguments.get(
+                "why_it_is_here",
+                "User requested this note remain on Radar.",
+            )
+
+            vault_root = get_vault_path(settings)
+
+            result = add_to_radar(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                note_path=note_path,
+                signal_type=signal_type,
+                pull=pull,
+                why_it_is_here=why_it_is_here,
+            )
+
+            return _json_result(_ok_data("radar_updated", result)), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False
