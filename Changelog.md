@@ -2,6 +2,38 @@
 
 ---
 
+## v0.7
+
+### Added
+- Introduced collaborator Radar system for lightweight attentional continuity
+- Added `ghostwriter_check_radar`
+- Added `ghostwriter_add_to_radar`
+- Automatic Radar bootstrapping during collaborator workspace creation
+- Canonical Radar note template with embedded behavioural guidance
+- Newest-first Radar insertion behaviour
+- Lightweight Radar formatting and normalization helpers
+- Initial attentional surface architecture for future resurfacing systems
+
+### Improved
+- Expanded Activity Stream continuity integration
+- Improved related-link normalization behaviour
+- Improved lightweight continuity maintenance architecture
+- Refined collaborator environmental guidance semantics
+- Improved workspace initialization flow
+
+### Behavioural / Architectural
+- Formalized distinction between attentional placement and activation
+- Reinforced environment-driven cognition approach
+- Continued emphasis on lightweight semantic ecology over orchestration systems
+- Radar designed as attentional weather rather than task or memory management
+
+### Notes
+- Radar currently operates as a lightweight attentional surface
+- Autonomous resurfacing and cooling behaviour remain intentionally minimal during early v0.7 testing
+- Canonical path preprocessing remains lightweight by design
+
+---
+
 ## v0.6.5 - Activity Stream & Existing-Note Cognition
 
 ### Release Type

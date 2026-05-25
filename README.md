@@ -47,11 +47,11 @@ The guiding principle is:
 
 ---
 
-# Current Capabilities (v0.6.5)
+# Current Capabilities (v0.7)
 
 ## Activity Stream & Attentional Continuity (v0.6.5)
 
-Ghostwriter v0.6.5 introduces a lightweight Activity Stream system for shared collaborative continuity.
+Ghostwriter v0.7 expands  lightweight Activity Stream system with a collaborator attention Radar
 
 The stream is stored at:
 
@@ -88,6 +88,7 @@ Architecture update:
 ```markdown
 gw_core/
   activity_stream.py
+```
 
 ## Fluid Additive Editing (v0.6)
 
@@ -413,6 +414,7 @@ Instead, Ghostwriter relies on:
 - workspace conventions
 - operational governance
 - vault-native cognition scaffolding
+- lightweight attentional continuity through Radar surfaces
 
 The resulting behaviour has proven significantly more coherent than expected from such minimal infrastructure.
 

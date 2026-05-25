@@ -245,7 +245,30 @@ def resolve_related_link_path(vault_root: Path, link: str) -> str:
         return matches[0].relative_to(vault_root).as_posix()
 
     # If missing or ambiguous, preserve the original link text.
-    return raw
+    return ""
+
+def activity_stream_max_entries_from_meta_ops(meta_ops: dict) -> int:
+    sections = meta_ops.get("sections") or {}
+
+    section = sections.get("activity_stream_max_entries")
+
+    if not isinstance(section, dict):
+        return DEFAULT_MAX_ENTRIES
+
+    raw = section.get("directive")
+
+    if raw is None:
+        return DEFAULT_MAX_ENTRIES
+
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_ENTRIES
+
+    if value <= 0:
+        return DEFAULT_MAX_ENTRIES
+
+    return value
 
 def record_activity(
     vault_root: Path,
@@ -260,7 +283,10 @@ def record_activity(
 
     This must never block the parent tool action. If logging fails, warn and continue.
     """
+
     try:
+        from .meta import read_meta_ops
+
         if not persona_name or not persona_name.strip():
             return
 
@@ -294,12 +320,24 @@ def record_activity(
 
         existing = stream_path.read_text(encoding="utf-8")
 
-        existing = maintain_activity_stream(
-            existing,
+        updated = insert_entry_newest_first(existing, entry)
+
+        meta_ops = read_meta_ops(vault_root)
+
+        # Debug
+        logger.info(
+            "[Ghostwriter] meta_ops sections: %r",
+            meta_ops.get("sections"),
+)
+
+
+        # End Debug
+        max_entries = activity_stream_max_entries_from_meta_ops(meta_ops)
+
+        updated = maintain_activity_stream(
+            updated,
             max_entries=max_entries,
         )
-
-        updated = insert_entry_newest_first(existing, entry)
 
         stream_path.write_text(updated, encoding="utf-8")
 

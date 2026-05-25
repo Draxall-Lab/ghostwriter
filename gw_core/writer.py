@@ -30,8 +30,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 def create_ai_working_folder(vault_root: Path, policy: WritePolicy) -> Path:
+    from .radar import ensure_radar_note
+
     working_folder = resolve_persona_working_folder(vault_root, policy)
     working_folder.mkdir(parents=True, exist_ok=True)
+
+    ensure_radar_note(
+    vault_root=vault_root,
+    persona_name=policy.persona_name,
+)
     return working_folder
 
 
