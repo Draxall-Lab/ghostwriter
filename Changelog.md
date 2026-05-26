@@ -2,6 +2,74 @@
 
 ---
 
+# v0.7.1
+
+## Curiosity Layer & Attentional Ecology
+
+Ghostwriter v0.7.1 introduces collaborator-specific Curiosity layers, extending the attentional architecture beyond immediate salience into longer-term conceptual attraction and thematic drift.
+
+New capabilities include:
+
+- collaborator-specific Curiosity surfaces
+- lightweight conceptual persistence
+- atmospheric attentional continuity
+- unresolved thematic drift tracking
+- newest-first Curiosity insertion
+- automatic Curiosity note bootstrapping
+- curiosity-aware operational tooling
+- weak-association conceptual linking
+- collaborator-specific interpretive continuity
+- environmental attentional guidance
+- lightweight attentional governance
+- vault-native conceptual ecology primitives
+
+Curiosity differs intentionally from Radar.
+
+Radar tracks:
+
+- current attentional pull
+- active salience
+- near-term conceptual pressure
+
+Curiosity tracks:
+
+- recurring fascination
+- unresolved conceptual pull
+- thematic wandering
+- speculative attraction
+- long-term interpretive gravity
+
+Curiosity is intentionally:
+
+- non-operational
+- non-task-oriented
+- partially unresolved
+- atmospherically persistent
+
+The Curiosity layer preserves ambiguity, weak association, and conceptual wandering without collapsing them into deterministic retrieval or resurfacing systems.
+
+This version also further formalizes Ghostwriter’s evolution toward:
+
+- bounded attention
+- environmental continuity
+- collaborator-specific interpretive behaviour
+- lightweight governance-driven cognition scaffolding
+
+without introducing:
+
+- hidden autonomous loops
+- embedding systems
+- opaque orchestration layers
+- deterministic memory engines
+
+Design principle:
+
+> Curiosity is not obligation.
+>
+> It is a landscape.
+
+---
+
 ## v0.7
 
 ### Added

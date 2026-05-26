@@ -49,7 +49,9 @@ AVAILABLE_FUNCTIONS = [
     "ghostwriter_insert_frontmatter",
     "ghostwriter_check_stream",
     "ghostwriter_check_radar",
-    "ghostwriter_add_to_radar"
+    "ghostwriter_add_to_radar",
+    "ghostwriter_check_curiosity",
+    "ghostwriter_add_to_curiosity"
 ]
 
 TOOLS = [
@@ -537,6 +539,61 @@ TOOLS = [
                 }
             },
             "required": ["note_path"]
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_check_curiosity",
+        "description": "Check the collaborator Curiosity note. Curiosity reflects longer-term conceptual attraction, thematic wandering, unresolved fascination, and interpretive drift.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "Optional collaborator persona name. Uses the active collaborator if omitted."
+                }
+            },
+            "required": []
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_add_to_curiosity",
+        "description": "Add a freeform curiosity entry to the collaborator Curiosity note. This records recurring conceptual attraction or unresolved thematic drift without creating a task, reminder, or obligation.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "Optional collaborator persona name. Uses the active collaborator if omitted."
+                },
+                "name": {
+                    "type": "string",
+                    "description": "A short name for the curiosity, motif, theme, or conceptual pull."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A reflective description of the curiosity. This may be atmospheric, exploratory, or unresolved."
+                },
+                "why_it_is_here": {
+                    "type": "string",
+                    "description": "Optional explanation of why this curiosity keeps returning or why it feels conceptually alive."
+                },
+                "related_paths": {
+                    "type": "array",
+                    "description": "Optional related vault-relative note paths or Obsidian wikilinks, where relevant. Leave empty if the curiosity is not tied to specific notes.",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "required": ["name", "description"]
         }
     }
 }
@@ -1092,6 +1149,53 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             )
 
             return _json_result(_ok_data("radar_updated", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_check_curiosity":
+        try:
+            from gw_core.curiosity import check_curiosity
+
+            persona_name = arguments.get("persona_name", "")
+
+            vault_root = get_vault_path(settings)
+
+            result = check_curiosity(
+                vault_root=vault_root,
+                persona_name=persona_name,
+            )
+
+            return _json_result(_ok_data("curiosity_checked", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+
+    if function_name == "ghostwriter_add_to_curiosity":
+        try:
+            from gw_core.curiosity import add_to_curiosity
+
+            persona_name = arguments.get("persona_name", "")
+            name = arguments.get("name", "")
+            description = arguments.get("description", "")
+            why_it_is_here = arguments.get("why_it_is_here", "")
+            related_paths = arguments.get("related_paths", [])
+
+            if related_paths is None:
+                related_paths = []
+
+            vault_root = get_vault_path(settings)
+
+            result = add_to_curiosity(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                name=name,
+                description=description,
+                why_it_is_here=why_it_is_here,
+                related_paths=related_paths,
+            )
+
+            return _json_result(_ok_data("curiosity_updated", result)), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False
