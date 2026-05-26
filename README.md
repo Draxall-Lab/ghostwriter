@@ -47,11 +47,11 @@ The guiding principle is:
 
 ---
 
-# Current Capabilities (v0.7)
+# Current Capabilities (v0.7.1)
 
-## Activity Stream & Attentional Continuity (v0.6.5)
+## Activity Stream, Radar & Curiosity (v0.7.1)
 
-Ghostwriter v0.7 expands  lightweight Activity Stream system with a collaborator attention Radar
+Ghostwriter v0.7.1 expands the lightweight Activity Stream system with collaborator-specific Radar and Curiosity layers supporting attentional continuity and conceptual drift.
 
 The stream is stored at:
 
@@ -415,6 +415,11 @@ Instead, Ghostwriter relies on:
 - operational governance
 - vault-native cognition scaffolding
 - lightweight attentional continuity through Radar surfaces
+- collaborator-specific Curiosity layers
+- long-term conceptual attraction
+- unresolved thematic drift
+- atmospheric continuity
+- distinction from tasks/projects
 
 The resulting behaviour has proven significantly more coherent than expected from such minimal infrastructure.
 
@@ -437,6 +442,27 @@ Load meta-context
 ---
 
 # Current Status
+
+## v0.7.1
+Completed
+
+Validated v0.7.1 capabilities:
+
+- collaborator-specific Radar layers
+- collaborator-specific Curiosity layers
+- attentional continuity surfaces
+- conceptual drift tracking
+- lightweight environmental salience
+- newest-first Radar and Curiosity insertion
+- automatic Radar bootstrapping
+- automatic Curiosity bootstrapping
+- curiosity-aware collaborator tooling
+- collaborator-specific attentional behaviour
+- weak-association conceptual persistence
+- environmental continuity guidance
+- lightweight attentional governance
+- atmospheric collaborator orientation
+- vault-native attentional ecology primitives
 
 ## v0.6.5
 Completed

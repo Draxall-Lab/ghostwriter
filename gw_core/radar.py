@@ -28,6 +28,8 @@ You may freely add, update, cool, move, or remove entries depending on:
 - resurfacing relevance
 - changing attentional pull
 
+When adding or updating Radar entries, prefer using the dedicated Radar tools rather than standard append operations.
+
 Pull describes current attentional force, not objective importance.
 
 Recommended pull values:
