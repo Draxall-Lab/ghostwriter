@@ -41,7 +41,7 @@ cd ~/sapphire
 On Windows this may be something like:
 
 ```powershell
-cd E:\AI\sapphire
+cd C:\Users\username\sapphire
 ```
 
 Use the path that matches your own Sapphire installation.
@@ -104,7 +104,7 @@ python main.py
 On Windows, use your own Sapphire path:
 
 ```powershell
-cd E:\AI\sapphire
+cd C:\Users\username\sapphire
 conda activate sapphire
 python main.py
 ```

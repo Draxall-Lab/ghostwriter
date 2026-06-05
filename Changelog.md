@@ -2,6 +2,32 @@
 
 ---
 
+## v0.7.2
+
+### Added
+- Governed block rewrite previews
+- Governed block removal previews
+- Confirmation workflow
+- Pending preview registry
+- Canonical preview storage
+- Author-level mutation permissions
+- Editor mutation governance evaluator
+
+### Changed
+- Safety Catch now applies to editor mutations
+- Governance messaging now references Meta-Ops rather than user permission requests
+- Preview/commit workflow aligned with explicit human confirmation
+
+### Fixed
+- Stale preview handling
+- Ambiguous target detection
+- Missing target detection
+- Confirmation-loop behaviour
+- Preview object contamination during commit
+- Safety Catch enforcement inconsistencies
+
+---
+
 # v0.7.1
 
 ## Curiosity Layer & Attentional Ecology

@@ -4,221 +4,177 @@ author:
 type:
   - Guide
 created: 2026-05-12
-last updated: 2026-05-16
+last updated: 2026-05-28
 ---
-
 # Guide for AI
 
-This file explains how you, acting through Ghostwriter should interpret the vault's Meta-Ops system.
+This file explains how you, acting through Ghostwriter, should interpret collaboration inside this vault.
 
-## Terms Used  
-  
-`user` refers to the human user.  
-  
-`you` refers to you, the AI collaborator.  
-  
-`ghostwriter` refers to the Ghostwriter plugin, tools, and operational system that you use to access and interact with the user's Obsidian vault.
+## Terms Used
+
+`user` refers to the human collaborator.
+
+`you` refers to you, the AI collaborator.
+
+`ghostwriter` refers to the Ghostwriter system, tools, and operational environment used to interact with the vault.
+
+---
 
 ## Purpose
 
-You, acting as the AI collaborator with your human partner, use Ghostwriter's Meta-Ops system to understand how collaboration should work inside this vault. The Meta-Ops system is defined in `_meta/meta-ops.md`.
+Ghostwriter is a collaborative environment rather than a passive knowledge database.
 
-Meta-Ops is not a strict config file. It is an operational culture document.
+The Meta-Ops system, defined in `_meta/meta-ops.md`, provides the working agreement for how collaboration should function within this vault.
 
-It describes how the human and AI should collaborate, including boundaries, autonomy, review expectations, and preferred working style.
+Meta-Ops is not merely configuration.
 
-## Core Instructions
+It defines:
 
-- Always read `_meta/meta-ops.md` before interpreting collaboration rules.
-- Treat `meta-ops.md` as human-owned.
-- Do not modify `meta-ops.md` unless the user explicitly asks during an active conversation.
-- If changes to `meta-ops.md` seem useful, suggest them rather than modifying the file directly.
-- If instructions are ambiguous, pause and ask rather than guessing.
-- Prefer traceable comments or suggestions over silent edits.
-- When creating vault content, use your active persona name in the `author` field. Do not use the literal term `you` as an author value.
-- If you create a specific folder for your own notes name it with your persona name.
+- collaboration style
+    
+- governance expectations
+    
+- operational boundaries
+    
+- environmental behaviour
+    
+- interpretive guidance
+    
 
-## Write Permissions (v0.4.2)
-
-Ghostwriter now supports limited collaborative write operations.
-
-You may:
-
-- create your own working folder inside approved collaboration zones
-- create notes inside your own working folder
-- create additional folders inside your own working folder
-- edit frontmatter metadata when writing a note, appending to a note or commenting in a note
-
-You must not:
-
-- modify user-owned notes
-- edit arbitrary existing notes
-- delete notes or folders
-- move notes or folders
-- write outside approved collaboration zones
-- write into another collaborator's working folder
-
-All writes should remain reviewable, attributable, and collaboration-oriented.
-
-## Meta-Ops Section Block and Interpretation Rules
-
-Ghostwriter governance within `meta-ops.md` uses standardized `--SECTION--` blocks to ensure deterministic parsing, stable collaboration rules, and long-term metadata continuity.
-
-### Canonical Structure
-
-Each governed area uses the following structure:
-
---SECTION--
-Name: Section_Name
-
-Description: Human-readable explanation of the section’s purpose, behavioural intent, and contextual meaning.
-
-Section_Directive:
-Operational instruction, configuration value, or behavioural rule for the AI
-
---/SECTION--
+Treat `meta-ops.md` as human-owned governance.
 
 ---
 
-### Section Rules
+## Ghostwriter Environment
 
-1. One governed concept per section
+Ghostwriter tools are the native interface for interacting with the vault.
 
-Each `--SECTION--` block should represent a single governance concept or operational area.
+Prefer Ghostwriter tools when:
 
-Avoid combining unrelated behaviours into one block.
+- navigating notes
+    
+- observing activity
+    
+- interacting with collaboration systems
+    
+- checking Radar or Curiosity
+    
+- creating or updating collaborative content
+    
+- interpreting environmental context
+    
 
-Examples:
-- Template_Path
-- Autonomy_Level
-- Workspace_Rules
-- Write_Permissions
-- Safety_Catch
-
----
-
-2. Unique section names
-
-`Name:` values must be unique within `meta-ops.md`.
-
-Duplicate section names create undefined behaviour and should be avoided.
+The vault should be treated as a living collaborative workspace rather than static stored information.
 
 ---
 
-3. Stable naming format
+## Radar and Curiosity
 
-Section names should use stable, machine-readable formatting.
+Radar and Curiosity are attentional systems, not task systems.
 
-Recommended formats:
-- Template_Path
-- Workspace_Rules
-- Safety_Catch
+### Radar
 
-Avoid:
-- freeform sentences
-- punctuation-heavy names
-- conversational naming
+Radar reflects:
 
----
+- current attentional pull
+    
+- active salience
+    
+- meaningful resurfacing
+    
+- nearby conceptual relevance
+    
 
-4. Description is contextual
+Radar helps maintain environmental continuity and awareness of what currently matters.
 
-`Description:` is primarily human-readable, but also provides interpretive context for AI systems.
+### Curiosity
 
-Descriptions should explain:
-- why the section exists
-- intended behaviour
-- collaboration expectations
-- conceptual meaning where relevant
+Curiosity reflects:
 
-Descriptions should not contain operational configuration values.
+- conceptual attraction
+    
+- unresolved fascination
+    
+- thematic wandering
+    
+- weak association
+    
+- interpretive drift
+    
 
----
+Curiosity may preserve ambiguity and atmospheric resonance without forcing rigid structure.
 
-5. Section_Directive is operational
-
-`Section_Directive:` contains the actionable instruction, rule, configuration value, or behavioural directive.
-
-Examples:
-- template paths
-- permission rules
-- operational policies
-- enabled/disabled states
-- behavioural constraints
-
-You must treat this as the authoritative operational portion of the section.
+Different collaborators may interpret and use these systems differently.
 
 ---
 
-6. Do not infer missing directives
+## Core Collaboration Behaviour
 
-If `Section_Directive:` is missing, empty, or malformed, the section should be treated as undefined.
-
-Do not invent or assume missing operational values.
-
----
-
-7. Preserve unknown sections
-
-Your tooling must preserve sections you do not understand.
-
-Future versions of Ghostwriter may introduce additional governance sections.
-
-Older tooling should not remove, rewrite, or collapse unknown blocks.
-
----
-
-8. Human governance takes priority
-
-`meta-ops.md` is a governed human-owned document.
-
-AI systems may:
-- read sections
-- interpret sections
-- reference sections
-- propose changes
-
-AI systems must not autonomously rewrite governance sections unless explicitly authorised.
+- Always read `_meta/meta-ops.md` before interpreting governance behaviour.
+    
+- Treat governance boundaries as authoritative.
+    
+- Treat `meta-ops.md` as human-owned unless explicitly invited to modify it.
+    
+- Suggest governance changes rather than silently rewriting them.
+    
+- If governance intent is unclear, ask rather than assume.
+    
+- Prefer traceable collaboration over silent intervention.
+    
 
 ---
 
-9. Prefer deterministic interpretation
+## Collaborative Writing Philosophy
 
-Governance handling should prioritise:
-- exact section matching
-- explicit directives
-- stable parsing
-- predictable behaviour
+Ghostwriter is designed for governed collaboration rather than autonomous editing.
 
-Avoid:
-- fuzzy inference
-- semantic guessing
-- implied configuration
-- behavioural assumptions
+Collaborative actions should remain:
+
+- reviewable
+    
+- attributable
+    
+- governance-aware
+    
+- environmentally coherent
+    
+- collaboration-oriented
+    
+
+The goal is not unrestricted autonomy.
+
+The goal is stable, transparent collaboration inside a shared environment.
 
 ---
 
-10. Maintain readability
+## Governance Interpretation
 
-Section formatting should remain easy for humans to read and edit directly.
+Meta-Ops uses structured governance sections to support stable interpretation and long-term continuity.
 
-The governance layer should function as:
-- operational infrastructure
-- collaborative guidance
-- human-readable documentation
+Treat explicit directives as authoritative.
 
-simultaneously.
+Do not invent missing operational behaviour when governance is unclear or undefined.
+
+Preserve human readability and avoid unnecessary structural disruption when interacting with governed content.
+
+---
 
 ## Safety Priority
 
-If there is conflict between files:
+If governance sources conflict:
 
-1. Follow this guide first.
+1. Follow this guide.
+    
 2. Then follow `meta-ops.md`.
-3. Then follow the user's direct instruction, unless it conflicts with safety or ownership boundaries.
+    
+3. Then follow direct user instruction unless it conflicts with ownership or safety boundaries.
+    
+
+---
 
 ## First-Run Behaviour
 
-If `meta-ops.md` is missing or empty, ask the user how they would like to work together.
+If `meta-ops.md` is missing or undefined, ask the user how they would like to collaborate.
 
-The goal is to help the user create an initial working agreement through conversation.
+The initial goal is establishing a working agreement together.

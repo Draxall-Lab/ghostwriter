@@ -1,14 +1,13 @@
 from datetime import date, datetime
 import re 
-
 from pathlib import Path
-
 from .meta import read_meta_ops
-
 from .write_policy import (
     WritePolicy,
 )
-
+from dataclasses import dataclass
+from typing import Any
+from gw_core.path_utils import resolve_existing_vault_note_path
 import logging
 
 logger = logging.getLogger(__name__)
@@ -692,16 +691,44 @@ def update_last_updated_field(text: str, persona_name: str | None = None) -> str
 VALID_NOTE_ACTIONS = {"edit", "append", "comment"}
 
 
-def read_safety_catch(meta_ops: dict) -> bool:
-    sections = meta_ops.get("sections") or {}
-    section = sections.get("safety_catch") or {}
-
-    directive = section.get("directive", "On")
-
-    if not isinstance(directive, str):
+def read_safety_catch(meta_ops: dict | None) -> bool:
+    if not isinstance(meta_ops, dict):
         return True
 
-    return directive.strip().lower() == "on"
+    raw = (
+        meta_ops.get("safety_catch")
+        or meta_ops.get("Safety Catch")
+        or meta_ops.get("safety catch")
+        or meta_ops.get("safety_catch_enabled")
+    )
+
+    if raw is None:
+        sections = meta_ops.get("sections", {})
+        if isinstance(sections, dict):
+            safety_section = sections.get("safety_catch", {})
+            if isinstance(safety_section, dict):
+                raw = safety_section.get("directive")
+
+    if isinstance(raw, bool):
+        return raw
+
+    if raw is None:
+        return True
+
+    value = str(raw).strip().lower()
+
+    if "current setting" in value:
+        tail = value.split("current setting", 1)[1]
+        value = tail.replace(":", "").strip().lower()
+
+    return value in {
+        "on",
+        "true",
+        "yes",
+        "enabled",
+        "active",
+        "1",
+    }
 
 
 def is_in_persona_workspace(note_path: str, persona: str) -> bool:
@@ -709,17 +736,6 @@ def is_in_persona_workspace(note_path: str, persona: str) -> bool:
     persona = persona.strip().strip("/")
 
     return normalised.startswith(f"_collab/{persona}/")
-
-
-def _as_list(value) -> list[str]:
-    if value is None:
-        return []
-
-    if isinstance(value, list):
-        return [str(v).strip() for v in value if str(v).strip()]
-
-    return [str(value).strip()] if str(value).strip() else []
-
 
 def _person_in_field(persona: str, value) -> bool:
     persona_norm = persona.strip().lower()
@@ -803,26 +819,239 @@ def can_perform_note_action(
     if action not in VALID_NOTE_ACTIONS:
         return False
 
-    # Own workspace remains implicitly owned.
-    if is_in_persona_workspace(note_path, persona):
-        return action in {"edit","append", "comment"}
+    inside_workspace = is_in_persona_workspace(note_path, persona)
 
-    # Always read current governance unless caller deliberately injects meta_ops.
+    if inside_workspace:
+        allowed = action in {"edit", "append", "comment"}
+        return allowed
+
     if meta_ops is None:
         meta_ops = read_meta_ops(vault_root)
+    
+    safety_catch = read_safety_catch(meta_ops)
 
-    if read_safety_catch(meta_ops):
+    if safety_catch:
         return False
 
     frontmatter = read_note_frontmatter(vault_root, note_path)
 
-    if is_author(persona, frontmatter, meta_ops):
-        return action in {"edit", "append", "comment"}
+    author = is_author(persona, frontmatter, meta_ops)
+    contributor = is_contributor(persona, frontmatter, meta_ops)
+    commenter = is_commenter(persona, frontmatter, meta_ops)
 
-    if is_contributor(persona, frontmatter, meta_ops):
-        return action in {"append", "comment"}
+    if author:
+        allowed = action in {"edit", "append", "comment"}
+        return allowed
 
-    if is_commenter(persona, frontmatter, meta_ops):
-        return action == "comment"
+    if contributor:
+        allowed = action in {"append", "comment"}
+        return allowed
+
+    if commenter:
+        allowed = action == "comment"
+        return allowed
 
     return False
+
+# Governance for editor dispatchers
+@dataclass
+class MutationGovernanceDecision:
+    allowed: bool
+    requires_confirmation: bool
+    reason: str
+    mutation_class: str
+    inside_workspace: bool
+    safety_catch_enabled: bool
+
+def evaluate_mutation_governance(
+    *,
+    vault_root,
+    persona_name: str,
+    path: str,
+    mutation_class: str,
+) -> MutationGovernanceDecision:
+    """
+    Central governance decision point for Ghostwriter mutation operations.
+
+    This should eventually handle:
+    - Safety Catch
+    - persona workspace boundaries
+    - note frontmatter permissions
+    - mutation class risk
+    - confirmation requirements
+    """
+
+    # Temporary v0.7.2 default:
+    # allow mutation attempts, but require confirmation.
+    return MutationGovernanceDecision(
+        allowed=True,
+        requires_confirmation=True,
+        reason="Temporary v0.7.2 default: mutation allowed with confirmation.",
+        mutation_class=mutation_class,
+        inside_workspace=False,
+        safety_catch_enabled=False,
+    )
+
+
+def _normalise_persona_name(value: str) -> str:
+    return value.strip().lower()
+
+
+def _as_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+
+    return [str(value).strip()] if str(value).strip() else []
+
+
+def _read_frontmatter(note_path: Path) -> dict:
+    """
+    Lightweight frontmatter reader.
+
+    If you already have a canonical Ghostwriter frontmatter parser,
+    replace this helper with that instead.
+    """
+    import yaml
+
+    text = note_path.read_text(encoding="utf-8")
+
+    if not text.startswith("---"):
+        return {}
+
+    parts = text.split("---", 2)
+
+    if len(parts) < 3:
+        return {}
+
+    raw_frontmatter = parts[1].strip()
+
+    if not raw_frontmatter:
+        return {}
+
+    loaded = yaml.safe_load(raw_frontmatter)
+
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def _is_inside_persona_workspace(
+    *,
+    path: str,
+    persona_name: str,
+) -> bool:
+    normalised_path = path.replace("\\", "/").strip("/")
+    persona = persona_name.strip().strip("/")
+
+    if not persona:
+        return False
+
+    expected_prefix = f"_collab/{persona}/"
+
+    return normalised_path.lower().startswith(expected_prefix.lower())
+
+
+def _persona_is_author(
+    *,
+    frontmatter: dict,
+    persona_name: str,
+) -> bool:
+    persona = _normalise_persona_name(persona_name)
+
+    authors = _as_list(frontmatter.get("author"))
+
+    return persona in {
+        _normalise_persona_name(author)
+        for author in authors
+    }
+
+
+def evaluate_editor_mutation_governance(
+    *,
+    vault_root: Path,
+    persona_name: str,
+    path: str,
+    mutation_class: str,
+    safety_catch_enabled: bool = True,
+) -> MutationGovernanceDecision:
+    """
+    Governance evaluator for editor-style mutations.
+
+    Editor mutations include:
+    - block rewrite
+    - block removal
+
+    Current v0.7.2 rule:
+    - inside own workspace: allowed, confirmation required
+    - outside own workspace + Safety Catch ON: blocked
+    - outside own workspace + Safety Catch OFF: author-level permission required
+    - contributor/commenter is not sufficient for rewrite/remove
+    """
+
+    inside_workspace = _is_inside_persona_workspace(
+        path=path,
+        persona_name=persona_name,
+    )
+
+    if not persona_name.strip():
+        return MutationGovernanceDecision(
+            allowed=False,
+            requires_confirmation=True,
+            reason="Missing persona_name. Editor mutation requires an active collaborator persona.",
+            mutation_class=mutation_class,
+            inside_workspace=inside_workspace,
+            safety_catch_enabled=safety_catch_enabled,
+        )
+
+    if inside_workspace:
+        return MutationGovernanceDecision(
+            allowed=True,
+            requires_confirmation=True,
+            reason="Editor mutation allowed inside persona workspace. Confirmation required.",
+            mutation_class=mutation_class,
+            inside_workspace=True,
+            safety_catch_enabled=safety_catch_enabled,
+        )
+
+    if safety_catch_enabled:
+        return MutationGovernanceDecision(
+            allowed=False,
+            requires_confirmation=True,
+            reason="Safety Catch blocks editor mutation outside the persona workspace.",
+            mutation_class=mutation_class,
+            inside_workspace=False,
+            safety_catch_enabled=True,
+        )
+
+    note_path = resolve_existing_vault_note_path(
+        vault_root=vault_root,
+        path=path,
+    )
+
+    frontmatter = _read_frontmatter(note_path)
+
+    if not _persona_is_author(
+        frontmatter=frontmatter,
+        persona_name=persona_name,
+    ):
+        return MutationGovernanceDecision(
+            allowed=False,
+            requires_confirmation=True,
+            reason="Editor mutation outside workspace requires author-level permission.",
+            mutation_class=mutation_class,
+            inside_workspace=False,
+            safety_catch_enabled=False,
+        )
+
+    return MutationGovernanceDecision(
+        allowed=True,
+        requires_confirmation=True,
+        reason="Editor mutation outside workspace allowed by author-level permission. Confirmation required.",
+        mutation_class=mutation_class,
+        inside_workspace=False,
+        safety_catch_enabled=False,
+    )
