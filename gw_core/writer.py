@@ -154,7 +154,12 @@ def append_to_note(
         note_path=note_path,
         action="append",
     ):
-        raise PermissionError("Permission denied. Ask the user for permission.")
+        raise PermissionError(
+            "This action is blocked by current Ghostwriter governance settings. "
+            "If Safety Catch is enabled, modifications outside the collaborator workspace are blocked "
+            "regardless of note-level permissions. "
+            "The user can change Safety Catch in Meta-Ops if they want to allow this operation."
+        )
 
     meta_ops = read_meta_ops(vault_root)
 
@@ -277,7 +282,12 @@ def comment_on_note(
         note_path=note_path,
         action="comment",
 ):
-        raise PermissionError("Permission denied. Ask the user for permission.")
+        raise PermissionError(
+            "This action is blocked by current Ghostwriter governance settings. "
+            "If Safety Catch is enabled, modifications outside the collaborator workspace are blocked "
+            "regardless of note-level permissions. "
+            "The user can change Safety Catch in Meta-Ops if they want to allow this operation."
+        )
 
     if not target.exists():
         raise FileNotFoundError(f"Note not found: {note_path}")

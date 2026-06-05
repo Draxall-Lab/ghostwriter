@@ -51,7 +51,10 @@ AVAILABLE_FUNCTIONS = [
     "ghostwriter_check_radar",
     "ghostwriter_add_to_radar",
     "ghostwriter_check_curiosity",
-    "ghostwriter_add_to_curiosity"
+    "ghostwriter_add_to_curiosity",
+    "ghostwriter_preview_block_rewrite",
+    "ghostwriter_preview_block_remove",
+    "ghostwriter_commit_block_edit",
 ]
 
 TOOLS = [
@@ -594,6 +597,84 @@ TOOLS = [
                 }
             },
             "required": ["name", "description"]
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_preview_block_rewrite",
+        "description": "Preview a governed block-level rewrite without modifying the note. Returns a mutation preview, including diff text, ambiguity status, locked-region collision status, and whether confirmation is required before commit.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "Optional collaborator persona name. Uses the active collaborator if omitted."
+                },
+                "path": {
+                    "type": "string",
+                    "description": "Vault-relative path to the Markdown note to edit."
+                },
+                "target_text": {
+                    "type": "string",
+                    "description": "The exact block of existing text to replace. Must match exactly and uniquely."
+                },
+                "replacement_text": {
+                    "type": "string",
+                    "description": "The proposed replacement block text."
+                }
+            },
+            "required": ["path", "target_text", "replacement_text"]
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_preview_block_remove",
+        "description": "Preview a governed block-level removal without modifying the note. Returns a mutation preview, including diff text, ambiguity status, locked-region collision status, and whether confirmation is required before commit.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "persona_name": {
+                    "type": "string",
+                    "description": "Optional collaborator persona name. Uses the active collaborator if omitted."
+                },
+                "path": {
+                    "type": "string",
+                    "description": "Vault-relative path to the Markdown note to edit."
+                },
+                "target_text": {
+                    "type": "string",
+                    "description": "The exact block of existing text to remove. Must match exactly and uniquely."
+                }
+            },
+            "required": ["path", "target_text"]
+        }
+    }
+},
+{
+    "type": "function",
+    "is_local": True,
+    "function": {
+        "name": "ghostwriter_commit_block_edit",
+        "description": "Request commit of a previously generated block edit preview. If the preview requires confirmation, this tool will return confirmation_required and must not retry automatically.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "preview": {
+                    "type": "object",
+                    "description": "The full preview object returned by ghostwriter_preview_block_rewrite or ghostwriter_preview_block_remove."
+                },
+                "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only when the user has explicitly confirmed this specific preview after seeing the diff. Do not infer confirmation from general permission or previous approvals."
+                }
+            },
+            "required": ["preview"]
         }
     }
 }
@@ -1196,6 +1277,275 @@ def execute(function_name, arguments, config=None, plugin_settings=None):
             )
 
             return _json_result(_ok_data("curiosity_updated", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+        
+    if function_name == "ghostwriter_preview_block_rewrite":
+        try:
+            from pathlib import Path
+            from dataclasses import asdict
+            from gw_core.editor import preview_block_change
+            from gw_core.governance import (
+                evaluate_editor_mutation_governance,
+                read_meta_ops,
+                read_safety_catch,
+            )     
+            from gw_core.path_utils import resolve_existing_vault_note_path
+
+            persona_name = arguments.get("persona_name", "")
+            path = arguments.get("path", "")
+            target_text = arguments.get("target_text", "")
+            replacement_text = arguments.get("replacement_text", "")
+
+            vault_root = get_vault_path(settings)
+
+            meta_ops = read_meta_ops(vault_root)
+            safety_catch_enabled = read_safety_catch(meta_ops)
+
+            decision = evaluate_editor_mutation_governance(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                path=path,
+                mutation_class="substitutive",
+                safety_catch_enabled=safety_catch_enabled,
+            )
+
+            if not decision.allowed:
+                return _json_result(_ok_data("block_rewrite_preview_blocked", {
+                    "allowed": False,
+                    "message": decision.reason,
+                    "mutation_class": decision.mutation_class,
+                    "inside_workspace": decision.inside_workspace,
+                    "safety_catch_enabled": decision.safety_catch_enabled,
+                })), True
+
+            note_path = resolve_existing_vault_note_path(
+                vault_root=vault_root,
+                path=path,
+            )
+
+            preview = preview_block_change(
+                note_path=note_path,
+                target_text=target_text,
+                replacement_text=replacement_text,
+                action="rewrite",
+                requires_confirmation=decision.requires_confirmation,
+            )
+
+            from gw_core.edit_state import (
+                store_pending_preview,
+                mark_confirmation_required,
+            )
+
+            # Store ONLY the canonical preview
+            canonical_preview = asdict(preview)
+            store_pending_preview(canonical_preview)
+
+            # Create a response copy for the LLM/UI
+            result = dict(canonical_preview)
+            result["governance"] = asdict(decision)
+
+            if preview.requires_confirmation:
+                result["next_required_action"] = "show_diff_and_request_confirmation"
+                result["commit_allowed_now"] = False
+                result["do_not_commit_until_user_confirms"] = True
+                result["confirmation_prompt"] = (
+                    "Do you want me to commit this exact change?"
+                )
+                result["message"] = (
+                    "Preview created. No changes committed. "
+                    "Show the diff to the user and ask for explicit confirmation before calling commit. "
+                    "Do not treat the original edit request as confirmation."
+                )
+
+                mark_confirmation_required(result["preview_id"])
+
+            return _json_result(_ok_data("block_rewrite_preview", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+
+    if function_name == "ghostwriter_preview_block_remove":
+        try:
+            from pathlib import Path
+            from dataclasses import asdict
+            from gw_core.editor import preview_block_removal
+            from gw_core.governance import (
+                evaluate_editor_mutation_governance,
+                read_meta_ops,
+                read_safety_catch,
+            )
+
+            from gw_core.path_utils import resolve_existing_vault_note_path
+    
+
+            persona_name = arguments.get("persona_name", "")
+            path = arguments.get("path", "")
+            target_text = arguments.get("target_text", "")
+
+            vault_root = get_vault_path(settings)
+
+            meta_ops = read_meta_ops(vault_root)
+            safety_catch_enabled = read_safety_catch(meta_ops)
+
+            decision = evaluate_editor_mutation_governance(
+                vault_root=vault_root,
+                persona_name=persona_name,
+                path=path,
+                mutation_class="destructive",
+                safety_catch_enabled=safety_catch_enabled,
+            )
+
+            if not decision.allowed:
+                return _json_result(_ok_data("block_remove_preview_blocked", {
+                    "allowed": False,
+                    "message": decision.reason,
+                    "mutation_class": decision.mutation_class,
+                    "inside_workspace": decision.inside_workspace,
+                    "safety_catch_enabled": decision.safety_catch_enabled,
+                })), True
+
+            note_path = resolve_existing_vault_note_path(
+                vault_root=vault_root,
+                path=path,
+            )
+
+            preview = preview_block_removal(
+                note_path=note_path,
+                target_text=target_text,
+                requires_confirmation=decision.requires_confirmation,
+            )
+
+            from gw_core.edit_state import (
+                store_pending_preview,
+                mark_confirmation_required,
+            )
+
+            # Store ONLY the canonical preview
+            canonical_preview = asdict(preview)
+            store_pending_preview(canonical_preview)
+
+            # Build response copy for LLM/UI
+            result = dict(canonical_preview)
+            result["governance"] = asdict(decision)
+
+            if preview.requires_confirmation:
+                result["next_required_action"] = "show_diff_and_request_confirmation"
+                result["commit_allowed_now"] = False
+                result["do_not_commit_until_user_confirms"] = True
+                result["confirmation_prompt"] = (
+                    "Do you want me to commit this exact change?"
+                )
+                result["message"] = (
+                    "Preview created. No changes committed. "
+                    "Show the diff to the user and ask for explicit confirmation before calling commit. "
+                    "Do not treat the original edit request as confirmation."
+                )
+
+                mark_confirmation_required(result["preview_id"])
+
+            return _json_result(_ok_data("block_remove_preview", result)), True
+
+        except Exception as exc:
+            return _json_result(_error(exc)), False
+
+
+    if function_name == "ghostwriter_commit_block_edit":
+        try:
+            from gw_core.editor import commit_block_change
+            from gw_core.edit_state import (
+                get_pending_preview,
+                mark_confirmation_required,
+                confirmation_was_requested,
+                clear_pending_preview,
+            )
+
+            preview_arg = arguments.get("preview", {})
+            confirmed = bool(arguments.get("confirmed", False))
+
+            if not isinstance(preview_arg, dict):
+                return _json_result(_ok_data("block_edit_refused", {
+                    "committed": False,
+                    "message": "Invalid preview object. Commit refused.",
+                })), True
+
+            raw_preview_id = preview_arg.get("preview_id")
+
+            if not isinstance(raw_preview_id, str) or not raw_preview_id:
+                return _json_result(_ok_data("block_edit_refused", {
+                    "committed": False,
+                    "message": "Missing preview_id. Commit refused.",
+                })), True
+
+            preview_id: str = raw_preview_id
+
+            stored_preview = get_pending_preview(preview_id)
+
+            if stored_preview is None:
+                return _json_result(_ok_data("block_edit_refused", {
+                    "committed": False,
+                    "message": "No pending preview found for this preview_id. Generate a fresh preview before committing.",
+                })), True
+
+            preview = stored_preview
+
+            if preview.get("requires_confirmation", True):
+
+                if not confirmation_was_requested(preview_id):
+                    mark_confirmation_required(preview_id)
+
+                    return _json_result(_ok_data("block_edit_confirmation_required", {
+                        "committed": False,
+                        "requires_human_confirmation": True,
+                        "commit_path_enabled": True,
+                        "do_not_retry": True,
+                        "message": (
+                            "This block edit requires explicit human confirmation before commit. "
+                            "Show the preview/diff to the user and ask whether to commit this exact change. "
+                            "If the user explicitly confirms, call commit again with confirmed=true."
+                        ),
+                        "preview_id": preview_id,
+                        "mutation_class": preview.get("mutation_class"),
+                        "action": preview.get("action"),
+                        "path": preview.get("path"),
+                        "diff": preview.get("diff"),
+                    })), True
+
+                if not confirmed:
+                    return _json_result(_ok_data("block_edit_confirmation_required", {
+                        "committed": False,
+                        "requires_human_confirmation": True,
+                        "commit_path_enabled": True,
+                        "do_not_retry": True,
+                        "message": (
+                            "Human confirmation has been requested but not received. "
+                            "Do not retry automatically. Wait for the user to explicitly confirm."
+                        ),
+                        "preview_id": preview_id,
+                        "mutation_class": preview.get("mutation_class"),
+                        "action": preview.get("action"),
+                        "path": preview.get("path"),
+                        "diff": preview.get("diff"),
+                    })), True
+
+            success, message = commit_block_change(
+                preview=preview,
+                confirmed=confirmed,
+            )
+
+            if success:
+                clear_pending_preview(preview_id)
+
+                return _json_result(_ok_data("block_edit_committed", {
+                    "committed": True,
+                    "message": message,
+                })), True
+
+            return _json_result(_ok_data("block_edit_refused", {
+                "committed": False,
+                "message": message,
+            })), True
 
         except Exception as exc:
             return _json_result(_error(exc)), False
